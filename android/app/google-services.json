@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "731804815132",
+    "project_id": "muc-jomtravel",
+    "storage_bucket": "muc-jomtravel.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:731804815132:android:94a55d447a281a7de3f4d9",
+        "android_client_info": {
+          "package_name": "com.example.muc_jomtravel"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "731804815132-ghkgr1f15b425soan4kqv843ib3455pp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.muc_jomtravel",
+            "certificate_hash": "72f5aa6085dd0ba7d2704f75b0fe5188dbc450e8"
+          }
+        },
+        {
+          "client_id": "731804815132-dskle869v9jsjpq62rkdb9gh6e90bggd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTBwj32hA-8AsdGkccez2e_WxKdB3MjNM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "731804815132-dskle869v9jsjpq62rkdb9gh6e90bggd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
