@@ -1,12 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/screen/authentication/auth_service.dart';
-import 'package:muc_jomtravel/shared/utils/validator.dart';
-import 'package:muc_jomtravel/shared/widgets/google_login_button.dart';
-import 'package:muc_jomtravel/shared/widgets/login_register_button.dart';
-import 'package:muc_jomtravel/shared/widgets/view_pass_button.dart';
+import 'package:muc_jomtravel/src/service/auth_service.dart';
+import 'package:muc_jomtravel/src/service/user_service.dart';
+import 'package:muc_jomtravel/src/shared/utils/validator.dart';
+import 'package:muc_jomtravel/src/shared/widgets/google_login_button.dart';
+import 'package:muc_jomtravel/src/shared/widgets/login_register_button.dart';
+import 'package:muc_jomtravel/src/shared/widgets/view_pass_button.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({super.key, required this.onLoginTap});
+
+  final VoidCallback onLoginTap;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -21,6 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool rememberMe = false;
   bool passwordVisible = false;
   final AuthService _authService = AuthService();
+  final UserService userService = UserService();
 
   @override
   Widget build(BuildContext context) {
@@ -131,21 +136,33 @@ class _RegisterPageState extends State<RegisterPage> {
                         if (!_formKey.currentState!.validate()) {
                           return; // ⛔ validators will now show errors
                         }
-                        final result = await _authService
-                            .registerWithEmailPassword(
-                              _emailController.text,
-                              _passwordController.text,
-                              _nameController.text,
-                              rememberMe,
-                            );
-
-                        if (result) {
-                          Navigator.pushReplacementNamed(context, '/home');
+                        await _authService.saveRememberIntent(rememberMe);
+                        await userService.savePendingProfile(
+                          name: _nameController.text,
+                        );
+                        try {
+                          await _authService.registerWithEmailPassword(
+                            _emailController.text,
+                            _passwordController.text,
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          String message = 'Registration failed';
+                          if (e.code == 'email-already-in-use') {
+                            message = 'The email is already in use.';
+                          } else if (e.code == 'weak-password') {
+                            message = 'The password provided is too weak.';
+                          }
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(message)));
                         }
                       },
                     ),
                     SizedBox(height: 20),
-                    GoogleLoginButton(buttonText: 'Register with Google'),
+                    GoogleLoginButton(
+                      buttonText: 'Register with Google',
+                      rememberMe: rememberMe,
+                    ),
                     SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -153,7 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         Text("Already have an account? "),
                         InkWell(
                           onTap: () {
-                            Navigator.pushNamed(context, '/login');
+                            widget.onLoginTap();
                           },
                           child: Text(
                             "Sign In",

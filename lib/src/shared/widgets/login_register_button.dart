@@ -7,7 +7,7 @@ class LoginRegisterButton extends StatelessWidget {
     required this.buttonText,
   });
 
-  final VoidCallback onToggle;
+  final Future<void> Function() onToggle;
   final String buttonText;
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,10 @@ class LoginRegisterButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        onPressed: () async => onToggle(),
+        onPressed: () async {
+          onToggle();
+        },
+
         child: Text(
           buttonText,
           style: TextStyle(

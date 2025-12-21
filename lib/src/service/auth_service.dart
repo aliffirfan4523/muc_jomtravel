@@ -1,8 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:muc_jomtravel/service/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -25,16 +23,6 @@ class AuthService {
         result = await FirebaseAuth.instance.signInWithCredential(credential);
       }
 
-      final user = result.user!;
-      final isNewUser = result.additionalUserInfo?.isNewUser ?? false;
-
-      if (isNewUser) {
-        await UserService().createUserIfNotExist(
-          user,
-          provider: 'google',
-          name: user.displayName,
-        );
-      }
       return true;
     } catch (e) {
       return false;
@@ -52,56 +40,27 @@ class AuthService {
         password: password,
       );
 
-      if (result.user == null) {
-        return false;
-      }
-      await saveLoginStatus(rememberMe, result.user!.uid);
-      return true;
+      return result.user != null ? true : false;
     } catch (e) {
       return false;
     }
   }
 
-  Future<bool> registerWithEmailPassword(
-    String email,
-    String password,
-    String name,
-    bool rememberMe,
-  ) async {
+  Future<void> registerWithEmailPassword(String email, String password) async {
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      final user = result.user!;
-      await user.updateDisplayName(name);
-
-      await UserService().createUserIfNotExist(
-        user,
-        provider: 'email_password',
-        name: name,
-      );
-
-      await saveLoginStatus(rememberMe, result.user!.uid);
-      return true;
-    } catch (signUpError) {
-      if (signUpError is PlatformException) {
-        if (signUpError.code == 'ERROR_EMAIL_ALREADY_IN_USE') {
-          /// `foo@bar.com` has alread been registered.
-        }
-      }
-      return false;
+      print('Firestore user created');
+    } catch (e) {
+      print('Error creating Firestore user: $e');
     }
   }
 
-  Future<void> saveLoginStatus(bool rememberMe, String userId) async {
+  Future<void> saveRememberIntent(bool rememberMe) async {
     final prefs = await SharedPreferences.getInstance();
-    if (rememberMe) {
-      await prefs.setBool('rememberMe', true);
-      await prefs.setString('userId', userId);
-    } else {
-      await prefs.setBool('rememberMe', false);
-    }
+    await prefs.setBool('rememberMe', rememberMe);
   }
 
   Future<bool> checkLoginStatus() async {
@@ -125,7 +84,11 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await GoogleSignIn.instance.signOut();
+    if (!kIsWeb) {
+      await GoogleSignIn.instance.signOut();
+    }
+
+    // 🔴 Firebase sign-out (MANDATORY)
     await _auth.signOut();
 
     final prefs = await SharedPreferences.getInstance();

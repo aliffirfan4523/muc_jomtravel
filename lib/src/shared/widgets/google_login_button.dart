@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/screen/authentication/auth_service.dart';
+import 'package:muc_jomtravel/src/service/auth_service.dart';
 
 class GoogleLoginButton extends StatelessWidget {
-  GoogleLoginButton({super.key, required this.buttonText});
+  GoogleLoginButton({
+    super.key,
+    required this.buttonText,
+    required this.rememberMe,
+  });
   final AuthService _authService = AuthService();
   final String buttonText;
+  final bool rememberMe;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +25,7 @@ class GoogleLoginButton extends StatelessWidget {
           ),
         ),
         onPressed: () async {
+          await _authService.saveRememberIntent(rememberMe);
           await _authService.signInWithGoogle();
         },
         child: Row(
