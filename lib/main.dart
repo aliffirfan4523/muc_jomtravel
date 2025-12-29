@@ -36,12 +36,12 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       routes: {
-        "/userProfile": (_) => UserProfiles(),
+        "/userProfile": (_) => UserProfileScreen(),
         "/viewPackages": (_) => ViewPackages(),
         "/bookingForm": (_) => BookingForm(),
-        "/bookingHistory": (_) => BookingHistory(),
-        "/bookingInfo": (_) => BookingInfo(),
-        "/bookingSuccesful": (_) => BookingSuccesful(),
+        "/bookingHistory": (_) => BookingHistoryScreen(),
+        "/bookingInfo": (_) => BookingInfoScreen(),
+        "/bookingSuccesful": (_) => BookingSuccessfulScreen(),
         "/priceSummary": (_) => BookingSummary(),
         "/adminViewBooking": (_) => AdminViewBooking(),
         "/adminViewPackages": (_) => AdminViewPackages(),
