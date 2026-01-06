@@ -6,13 +6,10 @@ import 'package:muc_jomtravel/firebase_options.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_booking.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_packages.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_user_data.dart';
-import 'package:muc_jomtravel/src/screen/booking/booking_form.dart';
-import 'package:muc_jomtravel/src/screen/booking/booking_history.dart';
 import 'package:muc_jomtravel/src/screen/booking/booking_info.dart';
 import 'package:muc_jomtravel/src/screen/booking/booking_succesful.dart';
-import 'package:muc_jomtravel/src/screen/booking/booking_summary.dart';
+import 'package:muc_jomtravel/src/screen/homepage/user_navigation_view.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_profile.dart';
-import 'package:muc_jomtravel/src/screen/package/view_package.dart';
 import 'package:muc_jomtravel/src/service/auth_service.dart';
 
 void main() async {
@@ -35,17 +32,18 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       routes: {
         "/userProfile": (_) => UserProfileScreen(),
-        "/viewPackages": (_) => ViewPackages(),
-        "/bookingForm": (_) => BookingForm(),
-        "/bookingHistory": (_) => BookingHistoryScreen(),
+        // "/bookingForm" is handled in onGenerateRoute
+        "/bookingHistory": (_) => UserNavigationView(selectedIndex: 1),
         "/bookingInfo": (_) => BookingInfoScreen(),
         "/bookingSuccesful": (_) => BookingSuccessfulScreen(),
-        "/priceSummary": (_) => BookingSummary(),
         "/adminViewBooking": (_) => AdminViewBooking(),
         "/adminViewPackages": (_) => AdminViewPackages(),
         "/adminViewUserData": (_) => AdminViewUserData(),
+
+        "/userDashboard": (_) => UserNavigationView(selectedIndex: 0),
       },
       home: AuthGate(),
     );

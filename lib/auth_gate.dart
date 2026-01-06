@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/screen/admin/admin_dashboard.dart';
 import 'package:muc_jomtravel/src/screen/authentication/registerlogin_switch.dart';
-import 'package:muc_jomtravel/src/screen/homepage/user_homepage.dart';
+import 'package:muc_jomtravel/src/screen/homepage/user_navigation_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthGate extends StatelessWidget {
@@ -64,7 +64,7 @@ class AuthGate extends StatelessWidget {
             final data = userSnap.data!;
             final isAdmin = data['is_admin'] ?? false;
 
-            return isAdmin ? AdminDashboard() : Homepage();
+            return isAdmin ? AdminDashboard() : UserNavigationView();
           },
         );
       },

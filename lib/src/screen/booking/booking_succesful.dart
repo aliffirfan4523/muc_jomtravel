@@ -10,46 +10,111 @@ class BookingSuccessfulScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Booking Successful')),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Spacer(),
 
-      /// Column centers confirmation content vertically
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          /// Success icon
-          const Icon(Icons.check_circle, size: 100, color: Colors.green),
+              // Success Animation/Icon
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  size: 100,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 32),
 
-          const SizedBox(height: 20),
+              // Big Success Text
+              const Text(
+                'Booking Confirmed!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
 
-          /// Success message
-          const Text(
-            'Booking Confirmed Successfully',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // Subtitle
+              const Text(
+                'Your trip to has been successfully booked.\nGet ready for an adventure!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+              ),
+
+              const Spacer(),
+
+              // Buttons
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Navigate to Booking History (and remove previous routes to prevent back)
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/bookingHistory',
+                      (route) => route
+                          .isFirst, // Keep the first route (usually Dashboard or Login) or specific logic
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'View Booking History',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/userDashboard',
+                      (route) => false, // Remove all routes
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Back to Home',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-
-          const SizedBox(height: 10),
-
-          /// Booking reference ID
-          const Text('Booking ID: 1523523123'),
-
-          const SizedBox(height: 30),
-
-          /// Navigate to booking info screen
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/info');
-            },
-            child: const Text('View Booking Details'),
-          ),
-
-          /// Navigate back to booking history/home
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/history');
-            },
-            child: const Text('Back To Homepage'),
-          ),
-        ],
+        ),
       ),
     );
   }

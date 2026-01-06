@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/screen/admin/view_booking.dart';
-import 'package:muc_jomtravel/src/screen/admin/view_packages.dart';
-import 'package:muc_jomtravel/src/screen/admin/view_user_data.dart';
+import 'package:muc_jomtravel/src/service/admin_service.dart';
 import 'package:muc_jomtravel/src/service/auth_service.dart';
 import 'package:muc_jomtravel/src/shared/widgets/sign_out_button.dart';
 
@@ -14,11 +12,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   final AuthService _authService = AuthService();
-
-  // Mock data - in a real app these might come from a stream or future
-  int totalPackages = 5;
-  int totalBookings = 12;
-  int totalUsers = 20;
+  final AdminService _adminService = AdminService();
 
   @override
   Widget build(BuildContext context) {
@@ -47,31 +41,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  // Stats Row
-                  Row(
-                    children: [
-                      _DashboardStatCard(
-                        title: "Packages",
-                        count: totalPackages,
-                        icon: Icons.holiday_village_outlined,
-                        color: Colors.orangeAccent,
-                      ),
-                      const SizedBox(width: 12),
-                      _DashboardStatCard(
-                        title: "Bookings",
-                        count: totalBookings,
-                        icon: Icons.book_online_outlined,
-                        color: Colors.blueAccent,
-                      ),
-                      const SizedBox(width: 12),
-                      _DashboardStatCard(
-                        title: "Users",
-                        count: totalUsers,
-                        icon: Icons.people_outline,
-                        color: Colors.purpleAccent,
-                      ),
-                    ],
+
+                  // FutureBuilder for Real Stats
+                  FutureBuilder<Map<String, int>>(
+                    future: _adminService.getDashboardStats(),
+                    builder: (context, snapshot) {
+                      final stats =
+                          snapshot.data ??
+                          {'packages': 0, 'bookings': 0, 'users': 0};
+                      final isLoading =
+                          snapshot.connectionState == ConnectionState.waiting;
+
+                      return Row(
+                        children: [
+                          _DashboardStatCard(
+                            title: "Packages",
+                            count: stats['packages']!,
+                            icon: Icons.holiday_village_outlined,
+                            color: Colors.orangeAccent,
+                            isLoading: isLoading,
+                          ),
+                          const SizedBox(width: 12),
+                          _DashboardStatCard(
+                            title: "Bookings",
+                            count: stats['bookings']!,
+                            icon: Icons.book_online_outlined,
+                            color: Colors.blueAccent,
+                            isLoading: isLoading,
+                          ),
+                          const SizedBox(width: 12),
+                          _DashboardStatCard(
+                            title: "Users",
+                            count: stats['users']!,
+                            icon: Icons.people_outline,
+                            color: Colors.purpleAccent,
+                            isLoading: isLoading,
+                          ),
+                        ],
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 30),
                   const Text(
                     "Management",
@@ -95,12 +105,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         icon: Icons.map,
                         color: primaryColor,
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushNamed(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const AdminViewPackages(),
-                            ),
-                          );
+                            "/adminViewPackages",
+                          ).then((_) => setState(() {}));
                         },
                       ),
                       _ActionCard(
@@ -108,12 +116,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         icon: Icons.confirmation_number,
                         color: secondaryColor,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AdminViewBooking(),
-                            ),
-                          );
+                          Navigator.pushNamed(context, "/adminViewBooking");
                         },
                       ),
                       _ActionCard(
@@ -121,12 +124,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         icon: Icons.person_search,
                         color: Colors.blueGrey,
                         onTap: () {
-                          Navigator.push(
+                          Navigator.pushNamed(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const AdminViewUserData(),
-                            ),
-                          );
+                            "/adminViewUserData",
+                          ).then((_) => setState(() {}));
                         },
                       ),
                       // Placeholder for future actions
@@ -134,8 +135,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         title: "Reports",
                         icon: Icons.analytics_outlined,
                         color: Colors.amber.shade700,
-                        onTap: () {
+                        onTap: () async {
                           // Future implementation
+                          //await insertKelantanPackages();
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Coming soon!")),
                           );
@@ -219,12 +221,14 @@ class _DashboardStatCard extends StatelessWidget {
   final int count;
   final IconData icon;
   final Color color;
+  final bool isLoading;
 
   const _DashboardStatCard({
     required this.title,
     required this.count,
     required this.icon,
     required this.color,
+    this.isLoading = false,
   });
 
   @override
@@ -257,14 +261,23 @@ class _DashboardStatCard extends StatelessWidget {
               child: Icon(icon, size: 24, color: color),
             ),
             const SizedBox(height: 8),
-            Text(
-              count.toString(),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+            isLoading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: color,
+                    ),
+                  )
+                : Text(
+                    count.toString(),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
             Text(
               title,
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),

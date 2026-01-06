@@ -1,12 +1,23 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Package {
   final String packageId;
   final String title;
   final String description;
   final String location;
   final String duration;
-  final double pricePerPerson;
+  final double priceAdult;
+  final double priceChild;
+  final String openingHours;
+  final String closingHours;
+  final String openingDay;
+  final String closingDay;
+  final List<String> activities;
   final String contactNumber;
-  final String imageUrl;
+  final List<String> image;
+  final bool isActive;
+  final Timestamp createdAt;
+  final Timestamp updatedAt;
 
   Package({
     required this.packageId,
@@ -14,9 +25,18 @@ class Package {
     required this.description,
     required this.location,
     required this.duration,
-    required this.pricePerPerson,
+    required this.priceAdult,
+    required this.priceChild,
+    required this.openingHours,
+    required this.closingHours,
+    required this.openingDay,
+    required this.closingDay,
+    required this.activities,
     required this.contactNumber,
-    required this.imageUrl,
+    required this.image,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory Package.fromMap(Map<String, dynamic> map) {
@@ -25,10 +45,41 @@ class Package {
       title: map['title'],
       description: map['description'],
       location: map['location'],
+      openingHours: map['opening_hours'],
+      closingHours: map['closing_hours'],
+      openingDay: map['opening_day'],
+      closingDay: map['closing_day'],
       duration: map['duration'],
-      pricePerPerson: map['price_per_person'].toDouble(),
+      activities: List<String>.from(map['activities'] ?? []),
+      priceAdult: map['price_adult'].toDouble(),
+      priceChild: map['price_child'].toDouble(),
       contactNumber: map['contact_number'],
-      imageUrl: map['image_url'],
+      image: List<String>.from(map['image_url'] ?? []),
+      isActive: map['is_active'],
+      createdAt: map['created_at'],
+      updatedAt: map['updated_at'],
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'package_id': packageId,
+      'title': title,
+      'description': description,
+      'location': location,
+      'opening_hours': openingHours,
+      'closing_hours': closingHours,
+      'opening_day': openingDay,
+      'closing_day': closingDay,
+      'duration': duration,
+      'activities': activities,
+      'price_adult': priceAdult,
+      'price_child': priceChild,
+      'contact_number': contactNumber,
+      'image_url': image,
+      'is_active': isActive,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
   }
 }

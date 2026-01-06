@@ -1,4 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/screen/admin/manage_package_form.dart';
+import 'package:muc_jomtravel/src/service/admin_service.dart';
 
 class AdminViewPackages extends StatefulWidget {
   const AdminViewPackages({super.key});
@@ -8,86 +12,34 @@ class AdminViewPackages extends StatefulWidget {
 }
 
 class _AdminViewPackagesState extends State<AdminViewPackages> {
-  /// List of packages (dummy local state for now)
-  final List<Map<String, String>> _packages = [];
+  final AdminService _adminService = AdminService();
 
-  /// Track which package is being edited (null = none)
-  int? _editingIndex;
-
-  /// Controllers for editing
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    super.dispose();
+  void _navigateToForm({Package? package}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManagePackageForm(package: package),
+      ),
+    );
   }
 
-  /// Create empty package card
-  void _addPackage() {
-    setState(() {
-      _packages.add({
-        "name": "",
-        "price": "",
-      });
-    });
-  }
-
-  /// Start editing selected package
-  void _startEdit(int index) {
-    setState(() {
-      _editingIndex = index;
-      _nameController.text = _packages[index]["name"] ?? "";
-      _priceController.text = _packages[index]["price"] ?? "";
-    });
-  }
-
-  /// Confirm edit
-  void _confirmEdit() {
-    setState(() {
-      _packages[_editingIndex!] = {
-        "name": _nameController.text,
-        "price": _priceController.text,
-      };
-      _editingIndex = null;
-    });
-  }
-
-  /// Cancel edit
-  void _cancelEdit() {
-    setState(() {
-      _editingIndex = null;
-    });
-  }
-
-  /// Delete with confirmation
-  void _deletePackage(int index) {
+  void _deletePackage(Package package) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Package"),
-        content: const Text("Are you sure you want to delete this package?"),
+        content: Text("Are you sure you want to delete '${package.title}'?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _packages.removeAt(index);
-                if (_editingIndex == index) {
-                  _editingIndex = null;
-                }
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              await _adminService.deletePackage(package);
+              if (context.mounted) Navigator.pop(context);
             },
-            child: const Text(
-              "Confirm",
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -97,100 +49,98 @@ class _AdminViewPackagesState extends State<AdminViewPackages> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("View Packages")),
+      appBar: AppBar(title: const Text("Manage Packages")),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addPackage,
+        onPressed: () => _navigateToForm(),
         child: const Icon(Icons.add),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _packages.length,
-        itemBuilder: (context, index) {
-          final isEditing = _editingIndex == index;
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('packages')
+            .orderBy('created_at', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const Center(child: Text("No packages found."));
+          }
+
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              // Ensure ID is included if missing in document data (it might be redundant if toMap includes it)
+              data['package_id'] = docs[index].id;
 
-                /// Dynamic title
-                Text(
-                  "Package ${index + 1}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              // Safely parsing
+              Package? package;
+              try {
+                // If package_id was saved in the document, use it. Otherwise use doc.id
+                if (data['package_id'] == null || data['package_id'] == '') {
+                  data['package_id'] = docs[index].id;
+                }
+
+                package = Package.fromMap(data);
+              } catch (e) {
+                return Card(
+                  color: Colors.red.shade100,
+                  child: ListTile(
+                    title: const Text("Error parsing package"),
+                    subtitle: Text(e.toString()),
+                  ),
+                );
+              }
+
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 16),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: package.image.isNotEmpty
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(package.image.first),
+                        )
+                      : const CircleAvatar(child: Icon(Icons.travel_explore)),
+                  title: Text(
+                    package.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text("Location: ${package.location}"),
+                      Text(
+                        "Adult: RM${package.priceAdult} | Child: RM${package.priceChild}",
+                      ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _navigateToForm(package: package),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deletePackage(package!),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 12),
-
-                /// Package Name
-                const Text("Package Name:"),
-                isEditing
-                    ? TextField(controller: _nameController)
-                    : Text(_packages[index]["name"]!.isEmpty
-                        ? "-"
-                        : _packages[index]["name"]!),
-
-                const SizedBox(height: 8),
-
-                /// Price
-                const Text("Price:"),
-                isEditing
-                    ? TextField(controller: _priceController)
-                    : Text(_packages[index]["price"]!.isEmpty
-                        ? "-"
-                        : _packages[index]["price"]!),
-
-                const SizedBox(height: 16),
-
-                /// Action buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: isEditing
-                      ? [
-                          _linkButton("Cancel", _cancelEdit),
-                          const SizedBox(width: 16),
-                          _linkButton("Confirm", _confirmEdit),
-                        ]
-                      : [
-                          _linkButton("Edit", () => _startEdit(index)),
-                          const SizedBox(width: 16),
-                          _linkButton(
-                            "Delete",
-                            () => _deletePackage(index),
-                            color: Colors.red,
-                          ),
-                        ],
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
-      ),
-    );
-  }
-
-  /// Reusable link-style button
-  Widget _linkButton(
-    String text,
-    VoidCallback onTap, {
-    Color color = Colors.blue,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          decoration: TextDecoration.underline,
-        ),
       ),
     );
   }

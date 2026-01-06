@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:muc_jomtravel/src/model/app_user.dart';
+import 'package:muc_jomtravel/src/service/admin_service.dart';
 
 class AdminViewUserData extends StatefulWidget {
   const AdminViewUserData({super.key});
@@ -8,23 +11,7 @@ class AdminViewUserData extends StatefulWidget {
 }
 
 class _AdminViewUserDataState extends State<AdminViewUserData> {
-  /// Dummy user data
-  final List<Map<String, String>> _users = [
-    {
-      "userId": "U101",
-      "name": "Ahmad Ali",
-      "email": "ahmad@email.com",
-      "phone": "012-3456789",
-    },
-    {
-      "userId": "U102",
-      "name": "Siti Aminah",
-      "email": "siti@email.com",
-      "phone": "013-9876543",
-    },
-  ];
-
-  /// Track expanded card
+  final AdminService _adminService = AdminService();
   int? _expandedIndex;
 
   void _toggleView(int index) {
@@ -33,31 +20,25 @@ class _AdminViewUserDataState extends State<AdminViewUserData> {
     });
   }
 
-  void _deleteUser(int index) {
+  void _deleteUser(AppUser user) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete User"),
-        content: const Text("Are you sure you want to delete this user?"),
+        content: Text(
+          "Are you sure you want to delete '${user.fullName}'?\nThis action cannot be undone.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _users.removeAt(index);
-                if (_expandedIndex == index) {
-                  _expandedIndex = null;
-                }
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              await _adminService.deleteUser(user.userId);
+              if (context.mounted) Navigator.pop(context);
             },
-            child: const Text(
-              "Confirm",
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -67,80 +48,195 @@ class _AdminViewUserDataState extends State<AdminViewUserData> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("User Data")),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _users.length,
-        itemBuilder: (context, index) {
-          final user = _users[index];
-          final isExpanded = _expandedIndex == index;
+      appBar: AppBar(title: const Text("User Management")),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _adminService.getUsersStream(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const Center(child: Text("No registered users found."));
+          }
+
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              // Ensure doc ID is used if missing in map
+              data['user_id'] ??= docs[index].id;
 
-                /// Default view
-                Text(
-                  "User ID: ${user["userId"]}",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text("Name: ${user["name"]}"),
+              AppUser? user;
+              try {
+                user = AppUser.fromMap(data);
+              } catch (e) {
+                return Card(
+                  child: ListTile(title: Text("Error parsing user: $e")),
+                );
+              }
 
-                /// Expanded details
-                if (isExpanded) ...[
-                  const SizedBox(height: 10),
-                  Text("Email: ${user["email"]}"),
-                  Text("Phone: ${user["phone"]}"),
-                ],
+              final isExpanded = _expandedIndex == index;
+              final initials = user.fullName.isNotEmpty
+                  ? user.fullName[0].toUpperCase()
+                  : "?";
 
-                const SizedBox(height: 12),
-
-                /// Action buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _linkButton(
-                      isExpanded ? "Minimize" : "View",
-                      () => _toggleView(index),
-                    ),
-                    const SizedBox(width: 16),
-                    _linkButton(
-                      "Delete",
-                      () => _deleteUser(index),
-                      color: Colors.red,
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-              ],
-            ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: user.isAdmin
+                            ? Colors.deepPurple.shade100
+                            : Colors.teal.shade100,
+                        child: Text(
+                          initials,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: user.isAdmin
+                                ? Colors.deepPurple
+                                : Colors.teal,
+                          ),
+                        ),
+                      ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user.fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          if (user.isAdmin)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurple,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'ADMIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      subtitle: Text(user.email),
+                      trailing: IconButton(
+                        icon: Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                        ),
+                        onPressed: () => _toggleView(index),
+                      ),
+                    ),
+
+                    if (isExpanded) ...[
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDetailRow(
+                              Icons.person_pin,
+                              "User ID",
+                              user.userId,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildDetailRow(
+                              Icons.login,
+                              "Provider",
+                              user.provider,
+                            ),
+                            const SizedBox(height: 10),
+                            _buildDetailRow(
+                              Icons.calendar_today,
+                              "Joined",
+                              _formatDate(user.createdAt),
+                            ),
+
+                            const SizedBox(height: 20),
+                            /**Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () => _deleteUser(user!),
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  label: const Text(
+                                    "Delete User",
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            )**/
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
     );
   }
 
-  /// Underlined clickable text button
-  Widget _linkButton(
-    String text,
-    VoidCallback onTap, {
-    Color color = Colors.blue,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          decoration: TextDecoration.underline,
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey),
+        const SizedBox(width: 10),
+        Text(
+          "$label: ",
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Colors.grey,
+          ),
         ),
-      ),
+        Expanded(child: Text(value.isEmpty ? "N/A" : value)),
+      ],
     );
+  }
+
+  String _formatDate(Timestamp timestamp) {
+    return timestamp.toDate().toLocal().toString().split(' ')[0];
   }
 }
