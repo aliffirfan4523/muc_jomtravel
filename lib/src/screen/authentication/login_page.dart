@@ -24,138 +24,213 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: const Color.fromARGB(255, 97, 96, 96),
-              width: 2,
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background Image
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/kl.jpg'),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          child: Scaffold(
-            bottomSheet: Text("JomTravel V1.01"),
-            body: Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Login",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 26,
-                      ),
-                    ),
-                    SizedBox(height: 30),
-
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) => validateEmail(value),
-                    ),
-                    SizedBox(height: 20),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        border: OutlineInputBorder(),
-                        suffixIcon: ViewPasswordButton(
-                          isVisible: passwordVisible,
-                          onToggle: () {
-                            setState(() {
-                              passwordVisible = !passwordVisible;
-                            });
-                          },
-                        ),
-                      ),
-                      obscureText: !passwordVisible,
-                      validator: (value) => requiredField(value, 'Password'),
-                    ),
-
-                    SizedBox(height: 20),
-
-                    Row(
+          // Dark Overlay
+          Container(
+            decoration: BoxDecoration(color: Colors.black.withOpacity(0.5)),
+          ),
+          // Content
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                color: Colors.white.withOpacity(0.95),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Checkbox(
-                          value: rememberMe,
-                          onChanged: (val) {
-                            setState(() {
-                              rememberMe = val!;
-                            });
-                          },
-                        ),
-                        Text("Remember Me"),
-                      ],
-                    ),
-
-                    SizedBox(height: 20),
-
-                    InkWell(onTap: () {}, child: Text("Forgot Password?")),
-
-                    SizedBox(height: 20),
-
-                    LoginRegisterButton(
-                      buttonText: "Login",
-                      onToggle: () async {
-                        if (!_formKey.currentState!.validate()) {
-                          return; // ⛔ validators will now show errors
-                        }
-                        await _authService.saveRememberIntent(rememberMe);
-
-                        final result = await _authService
-                            .signInWithEmailPassword(
-                              _emailController.text,
-                              _passwordController.text,
-                              rememberMe,
-                            );
-
-                        if (!result) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Invalid credentials. Please try again.',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    SizedBox(height: 20),
-                    GoogleLoginButton(
-                      buttonText: 'Sign in with Google',
-                      rememberMe: rememberMe,
-                    ),
-                    SizedBox(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Dont have an account? "),
-                        InkWell(
-                          onTap: widget.onRegisterTap,
-                          child: Text(
-                            "Sign Up",
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                        const Text(
+                          "Welcome Back",
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                            color: Color(0xFF00695C),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Login to continue your journey",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 30),
+
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                          ),
+                          validator: (value) => validateEmail(value),
+                        ),
+                        const SizedBox(height: 20),
+
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            suffixIcon: ViewPasswordButton(
+                              isVisible: passwordVisible,
+                              onToggle: () {
+                                setState(() {
+                                  passwordVisible = !passwordVisible;
+                                });
+                              },
+                            ),
+                          ),
+                          obscureText: !passwordVisible,
+                          validator: (value) =>
+                              requiredField(value, 'Password'),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: rememberMe,
+                              activeColor: const Color(0xFF00695C),
+                              onChanged: (val) {
+                                setState(() {
+                                  rememberMe = val!;
+                                });
+                              },
+                            ),
+                            const Text("Remember Me"),
+                            const Spacer(),
+                            InkWell(
+                              onTap: () {
+                                // Add forgot password logic here
+                              },
+                              child: const Text(
+                                "Forgot Password?",
+                                style: TextStyle(
+                                  color: Color(0xFF00695C),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        LoginRegisterButton(
+                          buttonText: "Login",
+                          onToggle: () async {
+                            if (!_formKey.currentState!.validate()) {
+                              return;
+                            }
+                            await _authService.saveRememberIntent(rememberMe);
+
+                            final result = await _authService
+                                .signInWithEmailPassword(
+                                  _emailController.text,
+                                  _passwordController.text,
+                                  rememberMe,
+                                );
+
+                            if (!result) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Invalid credentials. Please try again.',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          children: const [
+                            Expanded(child: Divider()),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                "OR",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                            Expanded(child: Divider()),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        GoogleLoginButton(
+                          buttonText: 'Sign in with Google',
+                          rememberMe: rememberMe,
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Don't have an account? "),
+                            InkWell(
+                              onTap: widget.onRegisterTap,
+                              child: const Text(
+                                "Sign Up",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00695C),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "JomTravel V1.01",
+                          style: TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
                       ],
                     ),
-                    SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
