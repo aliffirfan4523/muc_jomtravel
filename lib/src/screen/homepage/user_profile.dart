@@ -10,7 +10,6 @@ class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
 
   @override
-  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final userService = UserService();

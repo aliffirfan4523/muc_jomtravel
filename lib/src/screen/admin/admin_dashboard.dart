@@ -21,7 +21,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final Color secondaryColor = const Color(0xFF4DB6AC); // Lighter teal
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color.fromARGB(255, 234, 226, 226),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,37 +52,62 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       final isLoading =
                           snapshot.connectionState == ConnectionState.waiting;
 
-                      return Row(
+                      return Column(
+                        spacing: 20,
                         children: [
-                          _DashboardStatCard(
-                            title: "Packages",
-                            count: stats['packages']!,
-                            icon: Icons.holiday_village_outlined,
-                            color: Colors.orangeAccent,
-                            isLoading: isLoading,
+                          Row(
+                            children: [
+                              _DashboardStatCard(
+                                title: "Packages",
+                                count: stats['packages']!,
+                                icon: Icons.holiday_village_outlined,
+                                color: primaryColor,
+                                isLoading: isLoading,
+                              ),
+                              const SizedBox(width: 12),
+                              _DashboardStatCard(
+                                title: "Bookings",
+                                count: stats['bookings']!,
+                                icon: Icons.book_online_outlined,
+                                color: secondaryColor,
+                                isLoading: isLoading,
+                              ),
+                              const SizedBox(width: 12),
+                              _DashboardStatCard(
+                                title: "Users",
+                                count: stats['users']!,
+                                icon: Icons.people_outline,
+                                color: Colors.blueGrey,
+                                isLoading: isLoading,
+                              ),
+                              const SizedBox(width: 12),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          _DashboardStatCard(
-                            title: "Bookings",
-                            count: stats['bookings']!,
-                            icon: Icons.book_online_outlined,
-                            color: Colors.blueAccent,
-                            isLoading: isLoading,
-                          ),
-                          const SizedBox(width: 12),
-                          _DashboardStatCard(
-                            title: "Users",
-                            count: stats['users']!,
-                            icon: Icons.people_outline,
-                            color: Colors.purpleAccent,
-                            isLoading: isLoading,
+                          Row(
+                            children: [
+                              _DashboardStatCard(
+                                title: "Vouchers",
+                                count: stats['users']!,
+                                icon: Icons.local_offer_outlined,
+                                color: const Color.fromARGB(255, 0, 208, 255),
+                                isLoading: isLoading,
+                              ),
+                              const SizedBox(width: 12),
+                              _DashboardStatCard(
+                                title: "Reviews",
+                                count: stats['users']!,
+                                icon: Icons.reviews_outlined,
+                                color: const Color.fromARGB(255, 255, 0, 195),
+                                isLoading: isLoading,
+                              ),
+                            ],
                           ),
                         ],
                       );
                     },
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
                   const Text(
                     "Management",
                     style: TextStyle(
@@ -91,12 +116,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
                   // Action Grid
                   GridView.count(
+                    primary: false,
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
+                    crossAxisCount: 3,
                     crossAxisSpacing: 15,
                     mainAxisSpacing: 10,
                     children: [
@@ -131,6 +158,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         },
                       ),
                       // Placeholder for future actions
+                      _ActionCard(
+                        title: "Manage Vouchers",
+                        icon: Icons.local_offer_outlined,
+                        color: const Color.fromARGB(255, 0, 208, 255),
+                        onTap: () async {
+                          // Future implementation
+                          //await insertKelantanPackages();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Coming soon!")),
+                          );
+                        },
+                      ),
+                      _ActionCard(
+                        title: "Manage Reviews",
+                        icon: Icons.reviews_outlined,
+                        color: const Color.fromARGB(255, 255, 0, 195),
+                        onTap: () async {
+                          // Future implementation
+                          //await insertKelantanPackages();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Coming soon!")),
+                          );
+                        },
+                      ),
                       _ActionCard(
                         title: "Reports",
                         icon: Icons.analytics_outlined,
@@ -331,13 +382,13 @@ class _ActionCard extends StatelessWidget {
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 28, color: color),
+              child: Icon(icon, size: 24, color: color),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),

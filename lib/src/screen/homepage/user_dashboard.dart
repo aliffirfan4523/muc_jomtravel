@@ -21,6 +21,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void initState() {
     super.initState();
     _packagesFuture = _userService.getPackages();
+    print("CurrentUser: ${_currentUser?.displayName ?? 'No user found'}");
   }
 
   void _onSearchChanged(String query) {

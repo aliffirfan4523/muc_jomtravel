@@ -4,10 +4,11 @@ class AppUser {
   final String userId;
   final String fullName;
   final String email;
-
   final bool isAdmin;
   final String provider;
   final Timestamp createdAt;
+  final int total_points;
+  final int lifetime_points;
 
   AppUser({
     required this.userId,
@@ -16,6 +17,8 @@ class AppUser {
     required this.isAdmin,
     required this.provider,
     required this.createdAt,
+    required this.total_points,
+    required this.lifetime_points,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -26,6 +29,8 @@ class AppUser {
       isAdmin: map['is_admin'] ?? false, // default safety
       provider: map['provider'] ?? 'unknown',
       createdAt: map['createdAt'] ?? FieldValue.serverTimestamp(),
+      total_points: map['total_points'] ?? 0,
+      lifetime_points: map['lifetime_points'] ?? 0,
     );
   }
 
@@ -36,5 +41,7 @@ class AppUser {
     'is_admin': isAdmin,
     'provider': provider,
     'createdAt': createdAt,
+    'total_points': total_points,
+    'lifetime_points': lifetime_points,
   };
 }

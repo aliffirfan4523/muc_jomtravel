@@ -25,6 +25,8 @@ class AuthGate extends StatelessWidget {
             ? user.providerData.first.providerId
             : 'unknown',
         'createdAt': FieldValue.serverTimestamp(),
+        'total_points': 0,
+        'lifetime_points': 0,
       });
 
       // 🔑 fetch again AFTER creation
