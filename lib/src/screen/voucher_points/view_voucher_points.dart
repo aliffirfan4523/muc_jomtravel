@@ -1,29 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_user.dart';
-import 'package:muc_jomtravel/src/service/user_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
-import '../homepage/user_navigation_view.dart';
+import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 import 'redeem_voucher.dart';
 import 'my_voucher.dart';
 
 class ViewVoucherPoints extends StatefulWidget {
-  ViewVoucherPoints({super.key});
-
+  const ViewVoucherPoints({super.key});
   @override
   State<ViewVoucherPoints> createState() => _ViewVoucherPointsState();
 }
 
 class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
+  final user = FirebaseAuth.instance.currentUser;
+
   Future<int> getUserPoints() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
       if (user == null) return 0;
 
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(user!.uid)
           .get();
 
       // The 'exists' check is good, but also ensure the data is there
@@ -103,41 +102,34 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
                             ),
                           ],
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: 4,
-                          scrollDirection: Axis.vertical,
-                          itemBuilder: (context, index) {
-                            return Card(
-                              child: ListTile(
-                                leading: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueAccent,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Icon(
-                                    Icons.local_offer,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                title: Text(
-                                  "${index + 1}0% Off on Next Booking",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text("Oct 5, 2024"),
-                                trailing: Text(
-                                  "+50 pts",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ),
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user!.uid)
+                              .collection('point_history')
+                              .orderBy('timestamp', descending: true)
+                              .limit(10) // Show last 10 activities
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData)
+                              return LinearProgressIndicator();
+
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics:
+                                  NeverScrollableScrollPhysics(), // Keep this since you're inside a scroll view
+                              itemCount: snapshot.data!.docs.length,
+                              itemBuilder: (context, index) {
+                                var data = snapshot.data!.docs[index];
+                                bool isEarn = data['amount'] > 0;
+
+                                return PointsActivityCard(
+                                  isEarn: isEarn,
+                                  title: data['title'],
+                                  timestamp: data['timestamp'],
+                                  amount: data['amount'],
+                                );
+                              },
                             );
                           },
                         ),

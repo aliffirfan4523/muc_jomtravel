@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/voucher.dart';
-import 'package:muc_jomtravel/src/shared/widgets/voucher_card.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class RedeemVoucherView extends StatefulWidget {
   RedeemVoucherView({super.key, required this.userPoints});
@@ -13,15 +13,10 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
   String selectedOption = VoucherType.All.name;
 
   List<Voucher> get filteredVouchers {
-    if (selectedOption == VoucherType.All.name) {
-      return sampleVouchers;
-    }
+    if (selectedOption == VoucherType.All.name) return vouchers;
 
-    return sampleVouchers
-        .where(
-          (voucher) =>
-              voucher.type.toLowerCase() == selectedOption.toLowerCase(),
-        )
+    return vouchers
+        .where((v) => v.type.toLowerCase() == selectedOption.toLowerCase())
         .toList();
   }
 
@@ -75,14 +70,18 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
                         style: TextStyle(color: Colors.black54),
                       ),
                     )
-                  : ListView.builder(
+                  : ListView.separated(
                       shrinkWrap: true,
                       itemCount: filteredVouchers.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
+                        final selected =
+                            false; // For demo, first item is selected
                         return VoucherCard(
-                          title: filteredVouchers[index].title,
-                          description: filteredVouchers[index].description,
-                          cost: filteredVouchers[index].pointsRequired,
+                          selected: false,
+                          color: Colors.blue,
+                          voucher: filteredVouchers[index],
+                          isActive: false,
                         );
                       },
                     ),
@@ -95,92 +94,28 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
 
   Wrap voucherTypeChipChoice() {
     return Wrap(
-      spacing: 8.0, // Space between chips
-      children: [
-        ChoiceChip(
+      spacing: 8.0,
+      children: VoucherType.values.map((type) {
+        final isSelected = selectedOption == type.name;
+
+        return ChoiceChip(
           showCheckmark: false,
+          label: Text(type.name),
           labelStyle: TextStyle(
             fontSize: 14,
-            color: selectedOption == VoucherType.All.name
-                ? Colors.white
-                : Colors.black87,
+            color: isSelected ? Colors.white : Colors.black87,
           ),
-          label: Text(VoucherType.All.name),
-          selected: selectedOption == VoucherType.All.name,
-          onSelected: (bool selected) {
-            setState(() {
-              selectedOption = selected ? VoucherType.All.name : "";
-            });
-          },
+          selected: isSelected,
           selectedColor: Colors.blue,
           backgroundColor: Colors.black12,
-        ),
-        ChoiceChip(
-          showCheckmark: false,
-          labelStyle: TextStyle(
-            fontSize: 14,
-            color: selectedOption == VoucherType.Package.name
-                ? Colors.white
-                : Colors.black87,
-          ),
-          label: Text(VoucherType.Package.name),
-          selected: selectedOption == VoucherType.Package.name,
           onSelected: (bool selected) {
-            setState(() {
-              selectedOption = selected ? VoucherType.Package.name : "";
-            });
+            if (selected) {
+              // Only update if a new chip is selected
+              setState(() => selectedOption = type.name);
+            }
           },
-          selectedColor: Colors.blue,
-          backgroundColor: Colors.black12,
-        ),
-        ChoiceChip(
-          showCheckmark: false,
-          label: Text(
-            VoucherType.Voucher.name,
-            style: TextStyle(
-              fontSize: 14,
-              color: selectedOption == VoucherType.Voucher.name
-                  ? Colors.white
-                  : Colors.black87,
-            ),
-          ),
-          selected: selectedOption == VoucherType.Voucher.name,
-          onSelected: (bool selected) {
-            setState(() {
-              selectedOption = selected ? VoucherType.Voucher.name : "";
-            });
-          },
-          selectedColor: Colors.blue,
-          backgroundColor: Colors.black12,
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 }
-
-List<Voucher> sampleVouchers = [
-  Voucher(
-    voucherId: "1",
-    code: "10OFF",
-    discountAmount: 10.0,
-    type: "Voucher",
-    minimumSpend: 50.0,
-    title: "10% Off on Next Booking",
-    description:
-        "Get 10% off on your next booking with a minimum spend of \$50. Valid until 31 Dec 2024.",
-    expiryDate: "2024-12-31",
-    pointsRequired: 1000,
-  ),
-  Voucher(
-    voucherId: "2",
-    code: "20OFF",
-    discountAmount: 20.0,
-    type: "Voucher",
-    minimumSpend: 100.0,
-    title: "20% Off on Next Booking",
-    description:
-        "Get 20% off on your next booking with a minimum spend of \$100. Valid until 31 Dec 2024.",
-    expiryDate: "2024-12-31",
-    pointsRequired: 2000,
-  ),
-];

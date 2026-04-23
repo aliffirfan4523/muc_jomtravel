@@ -10,7 +10,7 @@ import 'package:muc_jomtravel/src/screen/booking/booking_info.dart';
 import 'package:muc_jomtravel/src/screen/booking/booking_succesful.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_navigation_view.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_profile.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

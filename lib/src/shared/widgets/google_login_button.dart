@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 class GoogleLoginButton extends StatelessWidget {
   GoogleLoginButton({

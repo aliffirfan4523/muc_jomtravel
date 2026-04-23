@@ -1,14 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_user.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
-import 'package:muc_jomtravel/src/service/user_service.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 /// User profile screen
 /// Can be connected to Firebase Authentication later
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -27,7 +25,7 @@ class UserProfileScreen extends StatelessWidget {
       body: user == null
           ? const Center(child: Text('No user logged in'))
           : FutureBuilder<AppUser?>(
-              future: userService.getUserData(user.uid),
+              future: userService.getUserData(user!.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

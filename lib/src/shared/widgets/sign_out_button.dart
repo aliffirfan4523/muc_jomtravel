@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 class SignoutButton extends StatelessWidget {
   const SignoutButton({super.key, required AuthService authService})

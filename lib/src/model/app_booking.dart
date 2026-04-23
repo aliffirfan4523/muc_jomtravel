@@ -14,9 +14,14 @@ class Booking {
   final bool addTourGuide;
   final bool addMeal;
   final bool addTransport;
-  final double totalPrice;
   final String status;
   final Timestamp createdAt;
+  final double originalPrice;
+  final double discountAmount;
+  final double totalPrice;
+  final String? voucherId;
+  final String? voucherCode;
+  final int pointsEarned;
 
   Booking({
     this.bookingId,
@@ -35,6 +40,11 @@ class Booking {
     required this.totalPrice,
     required this.status,
     required this.createdAt,
+    required this.originalPrice,
+    required this.discountAmount,
+    this.voucherId = '',
+    this.voucherCode = '',
+    required this.pointsEarned,
   });
 
   factory Booking.fromMap(Map<String, dynamic> map, String id) {
@@ -55,6 +65,11 @@ class Booking {
       totalPrice: (map['total_price'] ?? 0.0).toDouble(),
       status: map['status'] ?? 'Pending',
       createdAt: map['created_at'] ?? Timestamp.now(),
+      originalPrice: (map['original_price'] ?? 0.0).toDouble(),
+      discountAmount: (map['discount_amount'] ?? 0.0).toDouble(),
+      voucherId: map['voucher_id'],
+      voucherCode: map['voucher_code'],
+      pointsEarned: map['points_earned'] ?? 0,
     );
   }
 
@@ -75,6 +90,11 @@ class Booking {
       'total_price': totalPrice,
       'status': status,
       'created_at': createdAt,
+      'original_price': originalPrice,
+      'discount_amount': discountAmount,
+      'voucher_id': voucherId,
+      'voucher_code': voucherCode,
+      'points_earned': pointsEarned,
     };
   }
 }

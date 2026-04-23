@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/screen/package/package_card.dart';
-import 'package:muc_jomtravel/src/service/user_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -21,7 +21,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void initState() {
     super.initState();
     _packagesFuture = _userService.getPackages();
-    print("CurrentUser: ${_currentUser?.displayName ?? 'No user found'}");
+    print("CurrentUser: ${_currentUser ?? 'No user found'}");
   }
 
   void _onSearchChanged(String query) {

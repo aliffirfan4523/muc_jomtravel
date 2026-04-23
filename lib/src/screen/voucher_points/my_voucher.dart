@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../../model/voucher.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class MyVoucher extends StatefulWidget {
   MyVoucher({super.key});
@@ -10,6 +15,9 @@ class MyVoucher extends StatefulWidget {
 class _MyVoucherState extends State<MyVoucher>
     with SingleTickerProviderStateMixin {
   late TabController tabController;
+  final VoucherService _voucherService = VoucherService();
+  List<Voucher> activeVouchers = [];
+  List<Voucher> usedExpiredVouchers = [];
 
   @override
   void initState() {
@@ -17,6 +25,19 @@ class _MyVoucherState extends State<MyVoucher>
     tabController.addListener(() {
       setState(() {});
     });
+
+    _voucherService
+        .getUserVouchers(FirebaseAuth.instance.currentUser!.uid)
+        .then((vouchers) {
+          setState(() {
+            this.activeVouchers = vouchers
+                .where((v) => !v.redeemed && !v.expired)
+                .toList();
+            this.usedExpiredVouchers = vouchers
+                .where((v) => v.redeemed || v.expired)
+                .toList();
+          });
+        });
     super.initState();
   }
 
@@ -34,7 +55,7 @@ class _MyVoucherState extends State<MyVoucher>
           indicatorColor: Colors.blue,
           tabs: <Tab>[
             Tab(text: "Active"),
-            Tab(text: "User/Expired"),
+            Tab(text: "Used/Expired"),
           ],
           controller: tabController,
         ),
@@ -42,8 +63,46 @@ class _MyVoucherState extends State<MyVoucher>
       body: TabBarView(
         controller: tabController,
         children: [
-          Center(child: Text("Active Vouchers")),
-          Center(child: Text("User/Expired Vouchers")),
+          activeVouchers.isEmpty
+              ? Center(child: Text("No active vouchers"))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: activeVouchers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final voucher = activeVouchers[index];
+
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {},
+                      child: VoucherCard(
+                        selected: false,
+                        color: Colors.blue,
+                        voucher: voucher,
+                      ),
+                    );
+                  },
+                ),
+          usedExpiredVouchers.isEmpty
+              ? Center(child: Text("No used or expired vouchers"))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: usedExpiredVouchers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final voucher = usedExpiredVouchers[index];
+
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {},
+                      child: VoucherCard(
+                        selected: false,
+                        color: Colors.blue,
+                        voucher: voucher,
+                      ),
+                    );
+                  },
+                ),
         ],
       ),
     );

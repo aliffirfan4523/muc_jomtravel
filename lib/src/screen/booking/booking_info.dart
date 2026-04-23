@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:muc_jomtravel/src/model/app_booking.dart';
-import 'package:muc_jomtravel/src/service/booking_service.dart'
-    show BookingService;
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 /// BookingInfoScreen
 /// Displays complete details of a selected booking.

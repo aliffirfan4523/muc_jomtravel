@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:muc_jomtravel/src/model/app_booking.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 
 class AdminViewBooking extends StatefulWidget {
   const AdminViewBooking({super.key});

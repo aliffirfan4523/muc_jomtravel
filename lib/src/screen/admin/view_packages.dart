@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/screen/admin/manage_package_form.dart';
-import 'package:muc_jomtravel/src/service/admin_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 class AdminViewPackages extends StatefulWidget {
   const AdminViewPackages({super.key});

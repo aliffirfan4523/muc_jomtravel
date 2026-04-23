@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/utils/validator.dart';
-import 'package:muc_jomtravel/src/shared/widgets/google_login_button.dart';
-import 'package:muc_jomtravel/src/shared/widgets/login_register_button.dart';
-import 'package:muc_jomtravel/src/shared/widgets/view_pass_button.dart';
+import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key, required this.onRegisterTap});

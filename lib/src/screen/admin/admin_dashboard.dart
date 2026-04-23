@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/service/admin_service.dart';
-import 'package:muc_jomtravel/src/service/auth_service.dart';
-import 'package:muc_jomtravel/src/shared/widgets/sign_out_button.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});

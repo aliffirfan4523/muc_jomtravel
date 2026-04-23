@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:muc_jomtravel/src/model/app_booking.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 
 class BookingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -44,6 +43,11 @@ class BookingService {
     required bool addMeal,
     required bool addTransport,
     required double totalPrice,
+    required double originalPrice,
+    required double discountAmount,
+    String? voucherId,
+    String? voucherCode,
+    required int pointsEarned,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
@@ -64,6 +68,11 @@ class BookingService {
       totalPrice: totalPrice,
       status: 'Pending',
       createdAt: Timestamp.now(),
+      originalPrice: originalPrice,
+      discountAmount: discountAmount,
+      voucherId: voucherId,
+      voucherCode: voucherCode,
+      pointsEarned: pointsEarned,
     );
 
     await _firestore.collection('bookings').add(booking.toMap());

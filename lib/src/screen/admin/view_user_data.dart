@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_user.dart';
-import 'package:muc_jomtravel/src/service/admin_service.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
 
 class AdminViewUserData extends StatefulWidget {
   const AdminViewUserData({super.key});

@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 
 class AdminService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

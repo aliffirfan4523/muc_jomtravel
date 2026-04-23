@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 
 import '../booking/booking_form.dart';
 
 class PackageDetailScreen extends StatelessWidget {
   final Package package;
 
-  const PackageDetailScreen({super.key, required this.package});
+  PackageDetailScreen({super.key, required this.package});
 
   @override
   Widget build(BuildContext context) {

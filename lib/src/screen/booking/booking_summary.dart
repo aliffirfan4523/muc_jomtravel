@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
-import 'package:muc_jomtravel/src/service/booking_service.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/service/services.dart';
+
+import '../../model/voucher.dart';
 
 class PriceSummaryScreen extends StatelessWidget {
   final Package package;
@@ -14,6 +16,7 @@ class PriceSummaryScreen extends StatelessWidget {
   final String name;
   final String phone;
   final String email;
+  final Voucher? voucher;
 
   const PriceSummaryScreen({
     super.key,
@@ -27,22 +30,16 @@ class PriceSummaryScreen extends StatelessWidget {
     required this.name,
     required this.phone,
     required this.email,
+    this.voucher,
   });
 
-  void _confirmBooking(BuildContext context) async {
+  void _confirmBooking(
+    BuildContext context,
+    double originalPrice,
+    double discountAmount,
+  ) async {
     final bookingService = BookingService();
     // Calculate total again to be safe
-    double adultTotal = adults * package.priceAdult;
-    double childrenTotal = children * package.priceChild;
-    double mealTotal = addMeal ? (adults + children) * 30 : 0;
-    double tourGuideTotal = addTourGuide ? 50 : 0;
-    double transportTotal = addTransport ? 100 : 0;
-    double grandTotal =
-        adultTotal +
-        childrenTotal +
-        mealTotal +
-        tourGuideTotal +
-        transportTotal;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -66,7 +63,14 @@ class PriceSummaryScreen extends StatelessWidget {
         addTourGuide: addTourGuide,
         addMeal: addMeal,
         addTransport: addTransport,
-        totalPrice: grandTotal,
+        totalPrice: originalPrice - discountAmount,
+        originalPrice: originalPrice,
+        discountAmount: discountAmount,
+        voucherId: voucher?.voucherId ?? '',
+        voucherCode: voucher?.code ?? '',
+        pointsEarned: VoucherService().calculatePointsEarned(
+          originalPrice - discountAmount,
+        ),
       );
 
       if (context.mounted) {
@@ -94,6 +98,7 @@ class PriceSummaryScreen extends StatelessWidget {
         mealTotal +
         tourGuideTotal +
         transportTotal;
+    double discountedPrice = grandTotal - (voucher?.discountAmount ?? 0);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Price Summary')),
@@ -153,20 +158,61 @@ class PriceSummaryScreen extends StatelessWidget {
                 color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: [
-                  const Text(
-                    'Total Price',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Original Price',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      Text(
+                        'RM ${grandTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'RM ${grandTotal.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Discount Amount',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      Text(
+                        'RM ${(voucher?.discountAmount ?? 0).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Price',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'RM ${(discountedPrice).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -178,7 +224,11 @@ class PriceSummaryScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _confirmBooking(context),
+                onPressed: () => _confirmBooking(
+                  context,
+                  grandTotal,
+                  voucher?.discountAmount ?? 0,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

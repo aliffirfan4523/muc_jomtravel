@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/screen/package/PackageDetailScreen.dart';
 
 class PackageCard extends StatelessWidget {

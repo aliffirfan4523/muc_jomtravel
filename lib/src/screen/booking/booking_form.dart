@@ -1,12 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:muc_jomtravel/src/model/app_package.dart';
+import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/screen/booking/select_voucher.dart';
 
+import '../../model/voucher.dart';
 import 'booking_summary.dart';
 
 class BookingForm extends StatefulWidget {
   final Package package;
+
   const BookingForm({super.key, required this.package});
 
   @override
@@ -25,6 +28,8 @@ class _BookingFormState extends State<BookingForm> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController voucherController = TextEditingController();
+  Voucher? selectedVoucher;
 
   String get formattedDate => DateFormat('dd/MM/yyyy').format(visitDate);
 
@@ -41,6 +46,39 @@ class _BookingFormState extends State<BookingForm> {
       nameController.text = user.displayName ?? '';
       emailController.text = user.email ?? '';
     }
+  }
+
+  Future<void> _openVoucherSelection() async {
+    final voucher = await Navigator.push<Voucher>(
+      context,
+      MaterialPageRoute(builder: (_) => SelectVoucherPage()),
+    );
+
+    if (voucher != null) {
+      setState(() {
+        selectedVoucher = voucher;
+        voucherController.text = _voucherDisplayText(voucher);
+      });
+    }
+  }
+
+  String _voucherDisplayText(Voucher voucher) {
+    final dynamic v = voucher;
+
+    for (final getter in <String Function()>[
+      () => (v.code ?? '').toString(),
+      () => (v.voucherCode ?? '').toString(),
+      () => (v.title ?? '').toString(),
+      () => (v.name ?? '').toString(),
+    ]) {
+      try {
+        final value = getter().trim();
+        if (value.isNotEmpty) return value;
+      } catch (_) {}
+    }
+
+    final fallback = voucher.toString();
+    return fallback.startsWith('Instance of') ? 'Voucher selected' : fallback;
   }
 
   @override
@@ -227,7 +265,29 @@ class _BookingFormState extends State<BookingForm> {
                 ],
               ),
             ),
-
+            SizedBox(height: 16),
+            _sectionContainer(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Voucher',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: voucherController,
+                    readOnly: true,
+                    onTap: _openVoucherSelection,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Select Voucher',
+                      suffixIcon: Icon(Icons.arrow_forward_ios, size: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
 
             /// Calculate Price Button
@@ -261,6 +321,7 @@ class _BookingFormState extends State<BookingForm> {
                         name: nameController.text,
                         phone: phoneController.text,
                         email: emailController.text,
+                        voucher: selectedVoucher,
                       ),
                     ),
                   );
