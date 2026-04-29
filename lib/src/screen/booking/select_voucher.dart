@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 import '../../model/voucher.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
@@ -14,7 +15,6 @@ class SelectVoucherPage extends StatefulWidget {
 
 class _SelectVoucherPageState extends State<SelectVoucherPage> {
   final TextEditingController _voucherCodeController = TextEditingController();
-  int? _selectedIndex;
   final String uid = FirebaseAuth.instance.currentUser!.uid;
   final VoucherService _voucherService = VoucherService();
   Voucher? _tempSelectedVoucher;
@@ -27,21 +27,19 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color shopeeOrange = Colors.blue;
-
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: shopeeOrange,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        title: const Text('Select Voucher'),
+        title: const Text('Select Voucher', style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
       ),
-      backgroundColor: const Color(0xFFF5F5F5),
       body: StreamBuilder<List<Voucher>>(
         stream: _voucherService.getUserVouchersStream(uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
 
           final vouchers = snapshot.data?.where((v) => !v.redeemed && !v.expired).toList() ?? [];
@@ -49,31 +47,31 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
           return Column(
             children: [
               Container(
-                color: shopeeOrange,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                color: AppColors.primary,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Row(
                     children: [
-                      const Icon(Icons.confirmation_num_outlined, color: shopeeOrange),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.confirmation_num_outlined, color: AppColors.primary),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: _voucherCodeController,
                           decoration: const InputDecoration(
                             hintText: 'Enter voucher code',
+                            hintStyle: TextStyle(color: AppColors.textLight),
                             border: InputBorder.none,
-                            isDense: true,
                           ),
                         ),
                       ),
                       TextButton(
                         onPressed: () {},
-                        child: const Text('Apply', style: TextStyle(color: shopeeOrange, fontWeight: FontWeight.w700)),
+                        child: const Text('Apply', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -81,7 +79,7 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
               ),
               Expanded(
                 child: vouchers.isEmpty
-                    ? const Center(child: Text('No vouchers available'))
+                    ? const Center(child: Text('No vouchers available', style: TextStyle(color: AppColors.textSecondary)))
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: vouchers.length,
@@ -95,34 +93,41 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                             onTap: () => setState(() => _tempSelectedVoucher = voucher),
                             child: VoucherCard(
                               selected: isSelected,
-                              color: shopeeOrange,
+                              color: AppColors.primary,
                               voucher: voucher,
                             ),
                           );
                         },
                       ),
               ),
-              SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                  color: Colors.white,
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _tempSelectedVoucher == null
-                          ? null
-                          : () => Navigator.pop(context, _tempSelectedVoucher),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: shopeeOrange,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        disabledForegroundColor: Colors.grey.shade500,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text('Confirm Voucher', style: TextStyle(fontWeight: FontWeight.w700)),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                decoration: const BoxDecoration(
+                  color: AppColors.cardBackground,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 10,
+                      offset: Offset(0, -5),
                     ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _tempSelectedVoucher == null
+                        ? null
+                        : () => Navigator.pop(context, _tempSelectedVoucher),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppColors.border,
+                      disabledForegroundColor: AppColors.textLight,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Confirm Voucher', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ),

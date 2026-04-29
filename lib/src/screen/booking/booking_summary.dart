@@ -1,11 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
+import 'payment_screen.dart';
 
 import '../../model/voucher.dart';
 
-class PriceSummaryScreen extends StatelessWidget {
+class PriceSummaryScreen extends StatefulWidget {
   final Package package;
   final DateTime visitDate;
   final int adults;
@@ -17,6 +20,7 @@ class PriceSummaryScreen extends StatelessWidget {
   final String phone;
   final String email;
   final Voucher? voucher;
+  final String bookingSessionId;
 
   const PriceSummaryScreen({
     super.key,
@@ -30,207 +34,223 @@ class PriceSummaryScreen extends StatelessWidget {
     required this.name,
     required this.phone,
     required this.email,
+    required this.bookingSessionId,
     this.voucher,
   });
 
-  void _confirmBooking(
-    BuildContext context,
+  @override
+  State<PriceSummaryScreen> createState() => _PriceSummaryScreenState();
+}
+
+class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
+  bool _isConfirming = false;
+  final BookingService _bookingService = BookingService();
+
+  Future<void> _confirmBooking(
     double originalPrice,
     double discountAmount,
   ) async {
-    final bookingService = BookingService();
-    // Calculate total again to be safe
+    if (_isConfirming) return;
+
+    setState(() => _isConfirming = true);
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please login to book')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please login to book'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
+      setState(() => _isConfirming = false);
       return;
     }
 
     try {
-      await bookingService.createBooking(
-        package: package,
-        userName: name,
-        userPhone: phone,
-        userEmail: email,
-        visitDate: visitDate,
-        adults: adults,
-        children: children,
-        addTourGuide: addTourGuide,
-        addMeal: addMeal,
-        addTransport: addTransport,
+      // Create or Update the booking using the Session ID
+      await _bookingService.createBooking(
+        bookingId: widget.bookingSessionId,
+        package: widget.package,
+        userName: widget.name,
+        userPhone: widget.phone,
+        userEmail: widget.email,
+        visitDate: widget.visitDate,
+        adults: widget.adults,
+        children: widget.children,
+        addTourGuide: widget.addTourGuide,
+        addMeal: widget.addMeal,
+        addTransport: widget.addTransport,
         totalPrice: originalPrice - discountAmount,
         originalPrice: originalPrice,
         discountAmount: discountAmount,
-        voucherId: voucher?.voucherId ?? '',
-        voucherCode: voucher?.code ?? '',
+        voucherId: widget.voucher?.voucherId ?? '',
+        voucherCode: widget.voucher?.code ?? '',
         pointsEarned: VoucherService().calculatePointsEarned(
           originalPrice - discountAmount,
         ),
       );
 
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/bookingSuccesful');
+      if (mounted) {
+        // Navigate directly to Payment Screen using the known ID
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentScreen(
+              bookingId: widget.bookingSessionId, 
+              amount: originalPrice - discountAmount
+            ),
+          ),
+        );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error booking: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error booking: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isConfirming = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    double adultTotal = adults * package.priceAdult;
-    double childrenTotal = children * package.priceChild;
-    double mealTotal = addMeal ? (adults + children) * 30 : 0;
-    double tourGuideTotal = addTourGuide ? 50 : 0;
-    double transportTotal = addTransport ? 100 : 0;
+    double adultTotal = widget.adults * widget.package.priceAdult;
+    double childrenTotal = widget.children * widget.package.priceChild;
+    double mealTotal = widget.addMeal ? (widget.adults + widget.children) * 30 : 0;
+    double tourGuideTotal = widget.addTourGuide ? 50 : 0;
+    double transportTotal = widget.addTransport ? 100 : 0;
     double grandTotal =
         adultTotal +
         childrenTotal +
         mealTotal +
         tourGuideTotal +
         transportTotal;
-    double discountedPrice = grandTotal - (voucher?.discountAmount ?? 0);
+    double discountedPrice = grandTotal - (widget.voucher?.discountAmount ?? 0);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Price Summary')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Price Summary',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 8),
         child: Column(
           children: [
             /// Package Card
             _infoCard(
-              title: package.title,
+              title: widget.package.title,
               children: [
                 _row(
                   'Date',
-                  '${visitDate.day}/${visitDate.month}/${visitDate.year}',
+                  '${widget.visitDate.day}/${widget.visitDate.month}/${widget.visitDate.year}',
                 ),
-                _row('Adults ($adults)', 'RM ${adultTotal.toStringAsFixed(2)}'),
+                _row('Adults (${widget.adults})', 'RM ${adultTotal.toStringAsFixed(2)}'),
                 _row(
-                  'Children ($children)',
+                  'Children (${widget.children})',
                   'RM ${childrenTotal.toStringAsFixed(2)}',
                 ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             /// Contact Info Card
             _infoCard(
               title: 'Contact Details',
               children: [
-                _row('Name', name),
-                _row('Phone', phone),
-                _row('Email', email),
+                _row('Name', widget.name),
+                _row('Phone', widget.phone),
+                _row('Email', widget.email),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             /// Add-ons Card
             _infoCard(
               title: 'Add-ons',
               children: [
-                _row('Tour Guide', addTourGuide ? 'RM 50.00' : 'RM 0.00'),
+                _row('Tour Guide', widget.addTourGuide ? 'RM 50.00' : 'RM 0.00'),
                 _row(
                   'Meal',
-                  addMeal ? 'RM ${mealTotal.toStringAsFixed(2)}' : 'RM 0.00',
+                  widget.addMeal ? 'RM ${mealTotal.toStringAsFixed(2)}' : 'RM 0.00',
                 ),
-                _row('Transport', addTransport ? 'RM 100.00' : 'RM 0.00'),
+                _row('Transport', widget.addTransport ? 'RM 100.00' : 'RM 0.00'),
               ],
             ),
 
-            const Spacer(),
+            const SizedBox(height: 8),
 
-            /// Total
+            /// Total Breakdown
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: AppColors.shadow,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Original Price',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'RM ${grandTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
+                  _priceSummaryRow('Original Price', grandTotal, isMain: false),
+                  const SizedBox(height: 8),
+                  _priceSummaryRow(
+                    'Discount Amount',
+                    -(widget.voucher?.discountAmount ?? 0),
+                    isMain: false,
+                    isDiscount: true,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Discount Amount',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'RM ${(voucher?.discountAmount ?? 0).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
+                  const Divider(height: 32, color: AppColors.divider),
+                  _priceSummaryRow(
+                    'Total Price',
+                    discountedPrice,
+                    isMain: true,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Price',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Points to be earned',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'RM ${(discountedPrice).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                        Text(
+                          '+${VoucherService().calculatePointsEarned(discountedPrice)} pts',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Points to be earned',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        '+${VoucherService().calculatePointsEarned(discountedPrice)} pts',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -242,23 +262,31 @@ class PriceSummaryScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _confirmBooking(
-                  context,
-                  grandTotal,
-                  voucher?.discountAmount ?? 0,
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                onPressed: _isConfirming 
+                  ? null 
+                  : () => _confirmBooking(
+                    grandTotal,
+                    widget.voucher?.discountAmount ?? 0,
                   ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
                 ),
-                child: const Text(
-                  'Confirm Booking',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: _isConfirming
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Confirm & Proceed to Payment',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
               ),
             ),
           ],
@@ -270,19 +298,24 @@ class PriceSummaryScreen extends StatelessWidget {
   Widget _infoCard({required String title, required List<Widget> children}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ...children,
         ],
       ),
@@ -295,10 +328,47 @@ class PriceSummaryScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(left),
-          Text(right, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(left, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(
+            right,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _priceSummaryRow(
+    String label,
+    double amount, {
+    required bool isMain,
+    bool isDiscount = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isMain ? 18 : 14,
+            fontWeight: isMain ? FontWeight.bold : FontWeight.normal,
+            color: isMain ? AppColors.textPrimary : AppColors.textSecondary,
+          ),
+        ),
+        Text(
+          '${amount < 0 ? '-' : ''}RM ${amount.abs().toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: isMain ? 22 : 14,
+            fontWeight: FontWeight.bold,
+            color: isDiscount
+                ? AppColors.success
+                : (isMain ? AppColors.primary : AppColors.textPrimary),
+          ),
+        ),
+      ],
     );
   }
 }

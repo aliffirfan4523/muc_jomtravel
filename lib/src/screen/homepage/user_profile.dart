@@ -4,6 +4,7 @@ import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/shared/notifications.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -30,7 +31,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
@@ -43,7 +44,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 setState(() {});
               }
             },
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -64,7 +65,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
@@ -78,16 +79,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Password updated successfully'),
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${e.toString()}')),
+                  SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: AppColors.error),
                 );
               }
             },
-            child: const Text('Update'),
+            child: const Text('Update', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -99,10 +101,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_user == null || _isLoggingOut)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primary)));
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -110,7 +112,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
 
           final data = snapshot.data?.data() as Map<String, dynamic>?;
@@ -124,14 +126,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               SliverAppBar(
                 expandedHeight: 180,
                 pinned: true,
+                backgroundColor: AppColors.primary,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF4CA1AF), Color(0xFF2C3E50)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: AppColors.primaryGradient,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -210,19 +209,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           title: 'Terms of Service',
                           onTap: () {},
                         ),
-                        /*_buildMenuItem(
-                          icon: Icons.delete_outline,
-                          title: 'Delete Account',
-                          textColor: Colors.red,
-                          onTap: () {},
-                        ),*/
                       ]),
 
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
                         height: 54,
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: () async {
                             setState(() => _isLoggingOut = true);
                             await _authService.signOut();
@@ -235,11 +228,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            elevation: 0,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -266,7 +257,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.black54,
+          color: AppColors.textPrimary,
         ),
       ),
     );
@@ -276,13 +267,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadow,
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -291,12 +282,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.shade50,
+              color: AppColors.warning.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.stars_rounded,
-              color: Colors.amber,
+              color: AppColors.warning,
               size: 30,
             ),
           ),
@@ -306,14 +297,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               const Text(
                 'Available Balance',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: AppColors.textLight, fontSize: 13),
               ),
               Text(
                 '$points pts',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -323,7 +314,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             onPressed: () {
               ChangeTabNotification(2).dispatch(context);
             },
-            child: const Text('Details'),
+            child: const Text('Details', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -333,13 +324,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget _buildMenuCard(List<Widget> items) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadow,
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -356,20 +347,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }) {
     return ListTile(
       onTap: onTap,
-      leading: Icon(icon, color: textColor ?? Colors.blueGrey, size: 22),
+      leading: Icon(icon, color: textColor ?? AppColors.textSecondary, size: 22),
       title: Text(
         title,
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w500,
-          color: textColor ?? Colors.black87,
+          color: textColor ?? AppColors.textPrimary,
         ),
       ),
       subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(fontSize: 12))
+          ? Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textLight))
           : null,
       trailing: onTap != null
-          ? const Icon(Icons.chevron_right, size: 20, color: Colors.grey)
+          ? const Icon(Icons.chevron_right, size: 20, color: AppColors.textLight)
           : null,
     );
   }

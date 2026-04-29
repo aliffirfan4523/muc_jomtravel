@@ -58,7 +58,7 @@ class _AdminViewBookingState extends State<AdminViewBooking> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
-            .orderBy('created_at', descending: true)
+            .orderBy('booking_date', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

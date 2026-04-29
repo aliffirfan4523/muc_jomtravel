@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/screen/package/package_card.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
@@ -21,7 +22,6 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void initState() {
     super.initState();
     _packagesFuture = _userService.getPackages();
-    print("CurrentUser: ${_currentUser ?? 'No user found'}");
   }
 
   void _onSearchChanged(String query) {
@@ -39,10 +39,14 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('JomTravel'),
+        title: const Text('JomTravel', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         automaticallyImplyLeading: false,
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -55,17 +59,13 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: Colors.blue.withOpacity(0.3),
+                      color: AppColors.shadow,
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -75,7 +75,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     Text(
                       'Welcome back,',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         color: Colors.white.withOpacity(0.9),
                       ),
                     ),
@@ -89,20 +89,21 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Search Bar Visual
+                    // Search Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
                         decoration: const InputDecoration(
                           hintText: 'Where to next?',
+                          hintStyle: TextStyle(color: AppColors.textLight),
                           border: InputBorder.none,
-                          icon: Icon(Icons.search, color: Colors.grey),
+                          icon: Icon(Icons.search, color: AppColors.primary),
                         ),
                       ),
                     ),
@@ -115,7 +116,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
               /// Section Title
               const Text(
                 'Popular Packages',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 12),
 
@@ -124,18 +125,18 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 future: _packagesFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                   }
 
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: AppColors.error)));
                   }
 
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(32.0),
-                        child: Text('No active packages found.'),
+                        child: Text('No active packages found.', style: TextStyle(color: AppColors.textSecondary)),
                       ),
                     );
                   }

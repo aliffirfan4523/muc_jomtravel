@@ -1,36 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/service/voucher_service.dart';
 
 class BookingService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CollectionReference _bookingsCollection =
+      FirebaseFirestore.instance.collection('bookings');
+  final VoucherService _voucherService = VoucherService();
 
-  // Calculate total price
-  double calculateTotal({
-    required Package package,
-    required int adults,
-    required int children,
-    required bool addTourGuide,
-    required bool addMeal,
-    required bool addTransport,
-  }) {
-    double adultTotal = adults * package.priceAdult;
-    double childrenTotal = children * package.priceChild;
-
-    // Add-on logic (User can customize these rates if needed)
-    double mealTotal = addMeal ? (adults + children) * 30.0 : 0.0;
-    double tourGuideTotal = addTourGuide ? 50.0 : 0.0;
-    double transportTotal = addTransport ? 100.0 : 0.0;
-
-    return adultTotal +
-        childrenTotal +
-        mealTotal +
-        tourGuideTotal +
-        transportTotal;
-  }
-
-  // Create a new booking
+  /// Create a new booking
   Future<void> createBooking({
     required Package package,
     required String userName,
@@ -45,117 +22,104 @@ class BookingService {
     required double totalPrice,
     required double originalPrice,
     required double discountAmount,
-    String? voucherId,
-    String? voucherCode,
+    required String voucherId,
+    required String voucherCode,
     required int pointsEarned,
+    String? bookingId,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("User not logged in");
+    final docRef = bookingId != null ? _bookingsCollection.doc(bookingId) : _bookingsCollection.doc();
+    final now = DateTime.now();
+    
+    // Set payment deadline to 24 hours from now
+    final deadline = now.add(const Duration(hours: 24));
 
-    final booking = Booking(
-      userId: user.uid,
-      packageId: package.packageId,
-      packageTitle: package.title,
-      userName: userName,
-      userPhone: userPhone,
-      userEmail: userEmail,
-      visitDate: visitDate,
-      adults: adults,
-      children: children,
-      addTourGuide: addTourGuide,
-      addMeal: addMeal,
-      addTransport: addTransport,
-      totalPrice: totalPrice,
-      status: 'Pending',
-      createdAt: Timestamp.now(),
-      originalPrice: originalPrice,
-      discountAmount: discountAmount,
-      voucherId: voucherId,
-      voucherCode: voucherCode,
-      pointsEarned: pointsEarned,
-    );
-
-    final batch = _firestore.batch();
-
-    // 1. Create the booking document
-    final bookingRef = _firestore.collection('bookings').doc();
-    batch.set(bookingRef, booking.toMap());
-
-    // 2. Award points to the user
-    final userRef = _firestore.collection('users').doc(user.uid);
-    batch.update(userRef, {
-      'total_points': FieldValue.increment(pointsEarned),
-      'lifetime_points': FieldValue.increment(pointsEarned),
+    await docRef.set({
+      'booking_id': docRef.id,
+      'user_id': _voucherService.auth.currentUser!.uid,
+      'package_id': package.packageId,
+      'package_title': package.title,
+      'package_location': package.location,
+      'user_name': userName,
+      'user_phone': userPhone,
+      'user_email': userEmail,
+      'visit_date': Timestamp.fromDate(visitDate),
+      'booking_date': Timestamp.fromDate(now),
+      'adults': adults,
+      'children': children,
+      'add_tour_guide': addTourGuide,
+      'add_meal': addMeal,
+      'add_transport': addTransport,
+      'total_price': totalPrice,
+      'original_price': originalPrice,
+      'discount_amount': discountAmount,
+      'voucher_id': voucherId,
+      'voucher_code': voucherCode,
+      'points_earned': pointsEarned,
+      'status': 'pending', // Initially pending
+      'payment_status': 'unpaid',
+      'payment_deadline': Timestamp.fromDate(deadline),
     });
 
-    // 3. Log point history
-    final historyRef = userRef.collection('point_history').doc();
-    batch.set(historyRef, {
-      'title': 'Points Earned',
-      'description': 'Booking for ${package.title}',
-      'amount': pointsEarned,
-      'timestamp': FieldValue.serverTimestamp(),
-      'type': 'earn',
-    });
-
-    // 4. Mark voucher as redeemed if applicable
-    if (voucherId != null && voucherId.isNotEmpty) {
-      final userVoucherRef = userRef.collection('my_vouchers').doc(voucherId);
-      batch.update(userVoucherRef, {'redeemed': true});
+    // If a voucher was used, mark it as redeemed
+    if (voucherId.isNotEmpty) {
+      await _voucherService.markVoucherAsRedeemed(voucherId);
     }
-
-    await batch.commit();
   }
 
-  // Cancel data
-  Future<void> cancelBooking(String bookingId) async {
-    final bookingRef = _firestore.collection('bookings').doc(bookingId);
+  /// Mark booking as paid
+  Future<void> markAsPaid(String bookingId) async {
+    final bookingDoc = await _bookingsCollection.doc(bookingId).get();
+    if (!bookingDoc.exists) return;
 
-    return _firestore.runTransaction((transaction) async {
-      final bookingSnap = await transaction.get(bookingRef);
-      if (!bookingSnap.exists) throw Exception("Booking not found");
+    final data = bookingDoc.data() as Map<String, dynamic>;
+    final points = (data['points_earned'] ?? 0).toInt();
 
-      final data = bookingSnap.data() as Map<String, dynamic>;
-      final String status = data['status'] ?? '';
-      final String userId = data['user_id'] ?? '';
-      final int pointsEarned = (data['points_earned'] ?? 0).toInt();
-      final String packageTitle = data['package_title'] ?? 'Package';
-
-      if (status == 'Cancelled') return;
-
-      // 1. Update booking status
-      transaction.update(bookingRef, {'status': 'Cancelled'});
-
-      // 2. Remove points if any were earned
-      if (pointsEarned > 0 && userId.isNotEmpty) {
-        final userRef = _firestore.collection('users').doc(userId);
-
-        transaction.update(userRef, {
-          'total_points': FieldValue.increment(-pointsEarned),
-          'lifetime_points': FieldValue.increment(-pointsEarned),
-        });
-
-        // 3. Log point removal history
-        final historyRef = userRef.collection('point_history').doc();
-        transaction.set(historyRef, {
-          'title': 'Points Removed (Cancellation)',
-          'description': 'Cancelled booking for $packageTitle',
-          'amount': -pointsEarned,
-          'timestamp': FieldValue.serverTimestamp(),
-          'type': 'spend',
-        });
-        // 4. Refund voucher if applicable
-        if (data['voucher_id'] != null &&
-            data['voucher_id'].toString().isNotEmpty &&
-            userId.isNotEmpty) {
-          final voucherRef = _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('my_vouchers')
-              .doc(data['voucher_id']);
-          transaction.update(voucherRef, {'redeemed': false});
-        }
-      }
+    await _bookingsCollection.doc(bookingId).update({
+      'status': 'confirmed',
+      'payment_status': 'paid',
     });
+
+    // Add points to user account only after payment
+    await _voucherService.updateUserPoints(points);
+  }
+
+  /// Cancel a booking
+  Future<void> cancelBooking(String bookingId) async {
+    final bookingDoc = await _bookingsCollection.doc(bookingId).get();
+    if (!bookingDoc.exists) return;
+
+    final data = bookingDoc.data() as Map<String, dynamic>;
+    final points = (data['points_earned'] ?? 0).toInt();
+    final voucherId = data['voucher_id'] ?? '';
+    final paymentStatus = data['payment_status'] ?? 'unpaid';
+    final packageTitle = data['package_title'] ?? 'Travel Package';
+
+    await _bookingsCollection.doc(bookingId).update({
+      'status': 'cancelled',
+      'points_earned': 0, // Points are cancelled on the booking record
+    });
+
+    // If already paid, reverse the points in the user's account
+    if (paymentStatus == 'paid' && points > 0) {
+      await _voucherService.updateUserPoints(
+        -points,
+        title: 'Points Reversed',
+        description: 'Reversed due to cancellation of $packageTitle',
+      );
+    }
+
+    // Reactivate voucher if it was used
+    if (voucherId.isNotEmpty) {
+      await _voucherService.reactivateVoucher(voucherId);
+    }
+  }
+
+  /// Check and auto-cancel if payment expired (Lazy Cancellation)
+  Future<void> checkExpiredPayment(Booking booking) async {
+    if (booking.status == 'pending' && 
+        booking.paymentStatus == 'unpaid' && 
+        DateTime.now().isAfter(booking.paymentDeadline)) {
+      await cancelBooking(booking.bookingId!);
+    }
   }
 }

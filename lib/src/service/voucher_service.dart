@@ -1,12 +1,65 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 
 class VoucherService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth auth = FirebaseAuth.instance;
 
   int calculatePointsEarned(double totalPrice) {
     // Simple logic: 1 point for every RM10 spent
     return (totalPrice / 10).floor();
+  }
+
+  /// Update user's total points and add to history
+  Future<void> updateUserPoints(int points, {String? title, String? description}) async {
+    final user = auth.currentUser;
+    if (user == null) return;
+
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final historyRef = userRef.collection('point_history').doc();
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      if (!snapshot.exists) return;
+
+      int currentPoints = (snapshot.get('total_points') ?? 0).toInt();
+      transaction.update(userRef, {'total_points': currentPoints + points});
+
+      transaction.set(historyRef, {
+        'title': title ?? (points > 0 ? 'Points Earned' : 'Points Deducted'),
+        'amount': points,
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': points > 0 ? 'earn' : 'spend',
+        'description': description ?? (points > 0 ? 'Earned from booking' : 'Deducted from account'),
+      });
+    });
+  }
+
+  /// Mark a specific user voucher as redeemed
+  Future<void> markVoucherAsRedeemed(String voucherId) async {
+    final user = auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('my_vouchers')
+        .doc(voucherId)
+        .update({'redeemed': true});
+  }
+
+  /// Reactivate a redeemed voucher (e.g., if booking is cancelled)
+  Future<void> reactivateVoucher(String voucherId) async {
+    final user = auth.currentUser;
+    if (user == null) return;
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('my_vouchers')
+        .doc(voucherId)
+        .update({'redeemed': false});
   }
 
   /// Get real-time stream of user's owned vouchers
@@ -67,19 +120,6 @@ class VoucherService {
       // 3. Add the voucher to user's collection
       transaction.set(voucherRef, voucher.toMap());
     });
-  }
-
-  Future<void> addVoucherToUser(String userId, String voucherId) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('my_vouchers')
-          .doc(voucherId)
-          .set({'redeemedAt': FieldValue.serverTimestamp()});
-    } catch (e) {
-      print("Error adding voucher to user: $e");
-    }
   }
 
   // --- Admin Methods ---

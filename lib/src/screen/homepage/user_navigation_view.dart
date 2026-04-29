@@ -3,11 +3,12 @@ import 'package:muc_jomtravel/src/screen/booking/booking_history.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_profile.dart';
 import 'package:muc_jomtravel/src/screen/voucher_points/view_voucher_points.dart';
 import 'package:muc_jomtravel/src/shared/notifications.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 import 'user_dashboard.dart';
 
 class UserNavigationView extends StatefulWidget {
-  UserNavigationView({super.key, this.selectedIndex = 2});
+  UserNavigationView({super.key, this.selectedIndex = 0});
   int selectedIndex;
 
   @override
@@ -48,9 +49,10 @@ class _UserNavigationViewState extends State<UserNavigationView> {
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
-          backgroundColor: Colors.white,
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
+          backgroundColor: AppColors.cardBackground,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textLight,
+          type: BottomNavigationBarType.fixed,
           onTap: _changeTab,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),

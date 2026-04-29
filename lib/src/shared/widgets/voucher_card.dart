@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import '../../model/voucher.dart';
 
 class VoucherCard extends StatelessWidget {
-  VoucherCard({
+  const VoucherCard({
     super.key,
     required this.selected,
     required this.color,
@@ -25,17 +25,17 @@ class VoucherCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? color : const Color(0xFFEEEEEE),
+          color: selected ? color : AppColors.divider,
           width: selected ? 2 : 1,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.shadow,
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -113,7 +113,7 @@ class VoucherCard extends StatelessWidget {
                           if (isActive && onAction == null)
                             Icon(
                               selected ? Icons.check_circle : Icons.circle_outlined,
-                              color: selected ? color : Colors.grey[300],
+                              color: selected ? color : AppColors.textLight,
                               size: 20,
                             ),
                         ],
@@ -126,15 +126,15 @@ class VoucherCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         voucher.expiryDate,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[500],
+                          color: AppColors.textLight,
                         ),
                       ),
                       if (onAction != null)

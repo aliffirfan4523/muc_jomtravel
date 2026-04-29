@@ -5,6 +5,7 @@ class Booking {
   final String userId;
   final String packageId;
   final String packageTitle;
+  final String packageLocation;
   final String userName;
   final String userPhone;
   final String userEmail;
@@ -15,19 +16,22 @@ class Booking {
   final bool addMeal;
   final bool addTransport;
   final String status;
-  final Timestamp createdAt;
+  final Timestamp bookingDate;
   final double originalPrice;
   final double discountAmount;
   final double totalPrice;
   final String? voucherId;
   final String? voucherCode;
   final int pointsEarned;
+  final String paymentStatus;
+  final DateTime paymentDeadline;
 
   Booking({
     this.bookingId,
     required this.userId,
     required this.packageId,
     required this.packageTitle,
+    required this.packageLocation,
     required this.userName,
     required this.userPhone,
     required this.userEmail,
@@ -39,12 +43,14 @@ class Booking {
     required this.addTransport,
     required this.totalPrice,
     required this.status,
-    required this.createdAt,
+    required this.bookingDate,
     required this.originalPrice,
     required this.discountAmount,
     this.voucherId = '',
     this.voucherCode = '',
     required this.pointsEarned,
+    required this.paymentStatus,
+    required this.paymentDeadline,
   });
 
   factory Booking.fromMap(Map<String, dynamic> map, String id) {
@@ -53,6 +59,7 @@ class Booking {
       userId: map['user_id'] ?? '',
       packageId: map['package_id'] ?? '',
       packageTitle: map['package_title'] ?? '',
+      packageLocation: map['package_location'] ?? '',
       userName: map['user_name'] ?? '',
       userPhone: map['user_phone'] ?? '',
       userEmail: map['user_email'] ?? '',
@@ -64,12 +71,15 @@ class Booking {
       addTransport: map['add_transport'] ?? false,
       totalPrice: (map['total_price'] ?? 0.0).toDouble(),
       status: map['status'] ?? 'Pending',
-      createdAt: map['created_at'] ?? Timestamp.now(),
+      bookingDate: map['booking_date'] ?? map['created_at'] ?? Timestamp.now(),
       originalPrice: (map['original_price'] ?? 0.0).toDouble(),
       discountAmount: (map['discount_amount'] ?? 0.0).toDouble(),
       voucherId: map['voucher_id'],
       voucherCode: map['voucher_code'],
       pointsEarned: map['points_earned'] ?? 0,
+      paymentStatus: map['payment_status'] ?? 'unpaid',
+      paymentDeadline:
+          (map['payment_deadline'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -78,6 +88,7 @@ class Booking {
       'user_id': userId,
       'package_id': packageId,
       'package_title': packageTitle,
+      'package_location': packageLocation,
       'user_name': userName,
       'user_phone': userPhone,
       'user_email': userEmail,
@@ -89,12 +100,14 @@ class Booking {
       'add_transport': addTransport,
       'total_price': totalPrice,
       'status': status,
-      'created_at': createdAt,
+      'booking_date': bookingDate,
       'original_price': originalPrice,
       'discount_amount': discountAmount,
       'voucher_id': voucherId,
       'voucher_code': voucherCode,
       'points_earned': pointsEarned,
+      'payment_status': paymentStatus,
+      'payment_deadline': Timestamp.fromDate(paymentDeadline),
     };
   }
 }

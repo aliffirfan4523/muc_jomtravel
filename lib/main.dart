@@ -35,6 +35,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       routes: {
+        "/home": (_) => UserNavigationView(selectedIndex: 0),
         "/userProfile": (_) => UserProfileScreen(),
         // "/bookingForm" is handled in onGenerateRoute
         "/bookingHistory": (_) => UserNavigationView(selectedIndex: 1),

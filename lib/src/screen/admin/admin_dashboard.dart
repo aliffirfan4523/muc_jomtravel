@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -15,17 +16,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // Tropical Theme Colors
-    final Color primaryColor = const Color(0xFF00695C); // Teal shade
-    final Color secondaryColor = const Color(0xFF4DB6AC); // Lighter teal
-
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 234, 226, 226),
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context, primaryColor),
+            _buildHeader(context),
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -36,7 +33,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -52,7 +49,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           snapshot.connectionState == ConnectionState.waiting;
 
                       return Column(
-                        spacing: 20,
                         children: [
                           Row(
                             children: [
@@ -60,7 +56,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 title: "Packages",
                                 count: stats['packages']!,
                                 icon: Icons.holiday_village_outlined,
-                                color: primaryColor,
+                                color: AppColors.primary,
                                 isLoading: isLoading,
                               ),
                               const SizedBox(width: 12),
@@ -68,7 +64,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 title: "Bookings",
                                 count: stats['bookings']!,
                                 icon: Icons.book_online_outlined,
-                                color: secondaryColor,
+                                color: AppColors.secondary,
                                 isLoading: isLoading,
                               ),
                               const SizedBox(width: 12),
@@ -76,29 +72,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 title: "Users",
                                 count: stats['users']!,
                                 icon: Icons.people_outline,
-                                color: Colors.blueGrey,
+                                color: AppColors.textSecondary,
                                 isLoading: isLoading,
                               ),
-                              const SizedBox(width: 12),
                             ],
                           ),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               _DashboardStatCard(
                                 title: "Vouchers",
                                 count: stats['vouchers'] ?? 0,
                                 icon: Icons.local_offer_outlined,
-                                color: const Color.fromARGB(255, 0, 208, 255),
+                                color: AppColors.info,
                                 isLoading: isLoading,
                               ),
                               const SizedBox(width: 12),
                               _DashboardStatCard(
                                 title: "Reviews",
-                                count: stats['users']!,
+                                count: 0, // Placeholder
                                 icon: Icons.reviews_outlined,
-                                color: const Color.fromARGB(255, 255, 0, 195),
+                                color: AppColors.success,
                                 isLoading: isLoading,
                               ),
+                              const SizedBox(width: 12),
+                              const Expanded(child: SizedBox()),
                             ],
                           ),
                         ],
@@ -106,16 +104,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     },
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
                   const Text(
                     "Management",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   // Action Grid
                   GridView.count(
                     primary: false,
@@ -124,12 +122,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 3,
                     crossAxisSpacing: 15,
-                    mainAxisSpacing: 10,
+                    mainAxisSpacing: 15,
                     children: [
                       _ActionCard(
-                        title: "Manage Packages",
+                        title: "Packages",
                         icon: Icons.map,
-                        color: primaryColor,
+                        color: AppColors.primary,
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -138,17 +136,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         },
                       ),
                       _ActionCard(
-                        title: "Manage Bookings",
+                        title: "Bookings",
                         icon: Icons.confirmation_number,
-                        color: secondaryColor,
+                        color: AppColors.secondary,
                         onTap: () {
                           Navigator.pushNamed(context, "/adminViewBooking");
                         },
                       ),
                       _ActionCard(
-                        title: "Manage Users",
+                        title: "Users",
                         icon: Icons.person_search,
-                        color: Colors.blueGrey,
+                        color: AppColors.textSecondary,
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -156,37 +154,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ).then((_) => setState(() {}));
                         },
                       ),
-                      // Placeholder for future actions
                       _ActionCard(
-                        title: "Manage Vouchers",
+                        title: "Vouchers",
                         icon: Icons.local_offer_outlined,
-                        color: const Color.fromARGB(255, 0, 208, 255),
+                        color: AppColors.info,
                         onTap: () {
                           Navigator.pushNamed(context, "/adminViewVouchers")
                               .then((_) => setState(() {}));
                         },
                       ),
                       _ActionCard(
-                        title: "Manage Reviews",
+                        title: "Reviews",
                         icon: Icons.reviews_outlined,
-                        color: const Color.fromARGB(255, 255, 0, 195),
-                        onTap: () async {
-                          // Future implementation
-                          //await insertKelantanPackages();
+                        color: AppColors.success,
+                        onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Coming soon!")),
+                            const SnackBar(content: Text("Coming soon!"), backgroundColor: AppColors.info),
                           );
                         },
                       ),
                       _ActionCard(
                         title: "Reports",
                         icon: Icons.analytics_outlined,
-                        color: Colors.amber.shade700,
-                        onTap: () async {
-                          // Future implementation
-                          //await insertKelantanPackages();
+                        color: AppColors.warning,
+                        onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Coming soon!")),
+                            const SnackBar(content: Text("Coming soon!"), backgroundColor: AppColors.info),
                           );
                         },
                       ),
@@ -201,23 +194,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Color primaryColor) {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       height: 200,
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: primaryColor,
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
         ),
-        image: const DecorationImage(
-          image: AssetImage(
-            'assets/images/kl.jpg',
-          ), // Beautiful Thai beach scene placeholder
+        image: DecorationImage(
+          image: NetworkImage('https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80'),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.black26, // Darken image slightly for text readability
+            Colors.black38,
             BlendMode.darken,
           ),
         ),
@@ -227,22 +218,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Positioned(
             top: 40,
             right: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(20),
-              ),
+            child: CircleAvatar(
+              backgroundColor: Colors.white24,
               child: SignoutButton(authService: _authService),
             ),
           ),
-          Positioned(
+          const Positioned(
             bottom: 30,
             left: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  "Welcome Admin,",
+                  "Admin Dashboard",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -282,17 +270,16 @@ class _DashboardStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        height: 120,
+        height: 110,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: AppColors.shadow,
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -300,34 +287,34 @@ class _DashboardStatCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 24, color: color),
+              child: Icon(icon, size: 20, color: color),
             ),
             const SizedBox(height: 8),
             isLoading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: color,
+                      color: AppColors.primary,
                     ),
                   )
                 : Text(
                     count.toString(),
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -355,38 +342,37 @@ class _ActionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: AppColors.shadow,
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, size: 24, color: color),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColors.textPrimary,
               ),
             ),
           ],

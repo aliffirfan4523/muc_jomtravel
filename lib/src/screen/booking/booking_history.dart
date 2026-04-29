@@ -3,13 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 /// Screen to show booking history
 class BookingHistoryScreen extends StatelessWidget {
   const BookingHistoryScreen({super.key});
 
   /// Function that returns a real-time stream of bookings
-  /// Any update in Firestore will auto-update UI
   Stream<QuerySnapshot> bookingStream() {
     return FirebaseFirestore.instance
         .collection('bookings')
@@ -21,9 +21,13 @@ class BookingHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Booking History'),
+        title: const Text('Booking History', style: TextStyle(fontWeight: FontWeight.bold)),
         automaticallyImplyLeading: false,
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
       ),
 
       /// StreamBuilder listens to Firestore updates
@@ -32,13 +36,13 @@ class BookingHistoryScreen extends StatelessWidget {
         builder: (context, snapshot) {
           /// Show loading if data is not ready
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: AppColors.error)));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No bookings found'));
+            return const Center(child: Text('No bookings found', style: TextStyle(color: AppColors.textSecondary)));
           }
 
           /// Convert Firestore documents into a list view
@@ -55,22 +59,29 @@ class BookingHistoryScreen extends StatelessWidget {
               Color statusColor;
               switch (booking.status.toLowerCase()) {
                 case 'confirmed':
-                  statusColor = Colors.green;
+                  statusColor = AppColors.success;
                   break;
                 case 'pending':
-                  statusColor = Colors.orange;
+                  statusColor = AppColors.warning;
                   break;
                 case 'cancelled':
-                  statusColor = Colors.red;
+                  statusColor = AppColors.error;
                   break;
                 default:
-                  statusColor = Colors.grey;
+                  statusColor = AppColors.textLight;
               }
 
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
@@ -112,8 +123,8 @@ class BookingHistoryScreen extends StatelessWidget {
                               DateFormat(
                                 'dd MMM yyyy',
                               ).format(booking.visitDate),
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
                                 fontSize: 14,
                               ),
                             ),
@@ -125,22 +136,22 @@ class BookingHistoryScreen extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.people,
                               size: 16,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${booking.adults + booking.children} Guests',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
                                 fontSize: 14,
                               ),
                             ),
@@ -150,7 +161,7 @@ class BookingHistoryScreen extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue,
+                                color: AppColors.primary,
                               ),
                             ),
                           ],

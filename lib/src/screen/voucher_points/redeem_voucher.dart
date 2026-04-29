@@ -3,11 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class RedeemVoucherView extends StatefulWidget {
   RedeemVoucherView({super.key, required this.userPoints});
-  final int userPoints; // Still keep it as initial, but we will use Stream for real-time
+  final int userPoints;
 
   @override
   State<RedeemVoucherView> createState() => _RedeemVoucherViewState();
@@ -15,15 +16,19 @@ class RedeemVoucherView extends StatefulWidget {
 
 class _RedeemVoucherViewState extends State<RedeemVoucherView> {
   String selectedOption = VoucherType.All.name;
+  FirebaseAuth auth = FirebaseAuth.instance;
   final VoucherService _voucherService = VoucherService();
   bool _isRedeeming = false;
-
-
 
   Future<void> _handleRedeem(Voucher voucher, int currentPoints) async {
     if (currentPoints < voucher.pointsRequired) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Insufficient points! You need ${voucher.pointsRequired} pts.")),
+        SnackBar(
+          content: Text(
+            "Insufficient points! You need ${voucher.pointsRequired} pts.",
+          ),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
@@ -32,10 +37,25 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Confirm Redemption"),
-        content: Text("Are you sure you want to redeem '${voucher.title}' for ${voucher.pointsRequired} points?"),
+        content: Text(
+          "Are you sure you want to redeem '${voucher.title}' for ${voucher.pointsRequired} points?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Redeem")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Redeem"),
+          ),
         ],
       ),
     );
@@ -43,18 +63,13 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
     if (confirm != true) return;
 
     setState(() => _isRedeeming = true);
-
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not logged in");
-
-      await _voucherService.redeemVoucher(user.uid, voucher);
-
+      await _voucherService.redeemVoucher(auth.currentUser?.uid ?? '', voucher);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Successfully redeemed ${voucher.title}!"),
-            backgroundColor: Colors.green,
+          const SnackBar(
+            content: Text("Voucher redeemed successfully!"),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -62,8 +77,8 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error: ${e.toString()}"),
-            backgroundColor: Colors.red,
+            content: Text("Error: $e"),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -77,44 +92,15 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Redeem Voucher', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        title: const Text(
+          'Redeem Voucher',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
-        actions: [
-          if (user != null)
-            StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
-              builder: (context, snapshot) {
-                final points = (snapshot.data?.data() as Map<String, dynamic>?)?['total_points'] ?? widget.userPoints;
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.stars_rounded, size: 16, color: Colors.blue),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$points pts",
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Stack(
         children: [
@@ -123,11 +109,73 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Choose a Voucher",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final points =
+                        (snapshot.data?.data()
+                            as Map<String, dynamic>?)?['total_points'] ??
+                        0;
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadow,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Your Points balance",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "$points pts",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Icon(
+                            Icons.stars,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+                const Text(
+                  "Select Category",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 voucherTypeChipChoice(),
                 const SizedBox(height: 20),
                 Expanded(
@@ -135,16 +183,32 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
                     stream: _voucherService.getAvailableVouchersStream(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        );
                       }
-                      
+
                       final allVouchers = snapshot.data ?? [];
-                      final filteredVouchers = selectedOption == VoucherType.All.name
+                      final filteredVouchers =
+                          selectedOption == VoucherType.All.name
                           ? allVouchers
-                          : allVouchers.where((v) => v.type.toLowerCase() == selectedOption.toLowerCase()).toList();
+                          : allVouchers
+                                .where(
+                                  (v) =>
+                                      v.type.toLowerCase() ==
+                                      selectedOption.toLowerCase(),
+                                )
+                                .toList();
 
                       if (filteredVouchers.isEmpty) {
-                        return const Center(child: Text('No vouchers available'));
+                        return const Center(
+                          child: Text(
+                            'No vouchers available',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        );
                       }
 
                       return ListView.separated(
@@ -153,16 +217,26 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
                         itemBuilder: (context, index) {
                           final voucher = filteredVouchers[index];
                           return StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).snapshots(),
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user?.uid)
+                                .snapshots(),
                             builder: (context, snapshot) {
-                              final currentPoints = (snapshot.data?.data() as Map<String, dynamic>?)?['total_points'] ?? 0;
+                              final currentPoints =
+                                  (snapshot.data?.data()
+                                      as Map<
+                                        String,
+                                        dynamic
+                                      >?)?['total_points'] ??
+                                  0;
                               return VoucherCard(
                                 selected: false,
-                                color: Colors.blue,
+                                color: AppColors.primary,
                                 voucher: voucher,
                                 isActive: true,
                                 actionLabel: "Redeem",
-                                onAction: () => _handleRedeem(voucher, currentPoints),
+                                onAction: () =>
+                                    _handleRedeem(voucher, currentPoints),
                               );
                             },
                           );
@@ -177,7 +251,9 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
           if (_isRedeeming)
             Container(
               color: Colors.black26,
-              child: const Center(child: CircularProgressIndicator()),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
             ),
         ],
       ),
@@ -199,13 +275,19 @@ class _RedeemVoucherViewState extends State<RedeemVoucherView> {
               labelStyle: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
               selected: isSelected,
-              selectedColor: Colors.blue,
-              backgroundColor: Colors.white,
+              selectedColor: AppColors.primary,
+              backgroundColor: AppColors.cardBackground,
               elevation: isSelected ? 2 : 0,
               pressElevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                ),
+              ),
               onSelected: (bool selected) {
                 if (selected) {
                   setState(() => selectedOption = type.name);
