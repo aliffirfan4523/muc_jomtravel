@@ -214,6 +214,24 @@ class PriceSummaryScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Points to be earned',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        '+${VoucherService().calculatePointsEarned(discountedPrice)} pts',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

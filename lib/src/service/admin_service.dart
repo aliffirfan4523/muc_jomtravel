@@ -34,17 +34,18 @@ class AdminService {
     try {
       final packages = await _firestore.collection('packages').count().get();
       final users = await _firestore.collection('users').count().get();
-      // Assuming 'bookings' collection exists, otherwise returning 0
       final bookings = await _firestore.collection('bookings').count().get();
+      final vouchers = await _firestore.collection('available_vouchers').count().get();
 
       return {
         'packages': packages.count ?? 0,
         'users': users.count ?? 0,
         'bookings': bookings.count ?? 0,
+        'vouchers': vouchers.count ?? 0,
       };
     } catch (e) {
       print('Error fetching stats: $e');
-      return {'packages': 0, 'users': 0, 'bookings': 0};
+      return {'packages': 0, 'users': 0, 'bookings': 0, 'vouchers': 0};
     }
   }
 }

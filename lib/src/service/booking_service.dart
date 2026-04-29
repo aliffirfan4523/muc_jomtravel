@@ -75,14 +75,87 @@ class BookingService {
       pointsEarned: pointsEarned,
     );
 
-    await _firestore.collection('bookings').add(booking.toMap());
+    final batch = _firestore.batch();
+
+    // 1. Create the booking document
+    final bookingRef = _firestore.collection('bookings').doc();
+    batch.set(bookingRef, booking.toMap());
+
+    // 2. Award points to the user
+    final userRef = _firestore.collection('users').doc(user.uid);
+    batch.update(userRef, {
+      'total_points': FieldValue.increment(pointsEarned),
+      'lifetime_points': FieldValue.increment(pointsEarned),
+    });
+
+    // 3. Log point history
+    final historyRef = userRef.collection('point_history').doc();
+    batch.set(historyRef, {
+      'title': 'Points Earned',
+      'description': 'Booking for ${package.title}',
+      'amount': pointsEarned,
+      'timestamp': FieldValue.serverTimestamp(),
+      'type': 'earn',
+    });
+
+    // 4. Mark voucher as redeemed if applicable
+    if (voucherId != null && voucherId.isNotEmpty) {
+      final userVoucherRef = userRef.collection('my_vouchers').doc(voucherId);
+      batch.update(userVoucherRef, {'redeemed': true});
+    }
+
+    await batch.commit();
   }
 
   // Cancel data
   Future<void> cancelBooking(String bookingId) async {
-    print(bookingId);
-    await _firestore.collection('bookings').doc(bookingId).update({
-      'status': 'Cancelled',
+    final bookingRef = _firestore.collection('bookings').doc(bookingId);
+
+    return _firestore.runTransaction((transaction) async {
+      final bookingSnap = await transaction.get(bookingRef);
+      if (!bookingSnap.exists) throw Exception("Booking not found");
+
+      final data = bookingSnap.data() as Map<String, dynamic>;
+      final String status = data['status'] ?? '';
+      final String userId = data['user_id'] ?? '';
+      final int pointsEarned = (data['points_earned'] ?? 0).toInt();
+      final String packageTitle = data['package_title'] ?? 'Package';
+
+      if (status == 'Cancelled') return;
+
+      // 1. Update booking status
+      transaction.update(bookingRef, {'status': 'Cancelled'});
+
+      // 2. Remove points if any were earned
+      if (pointsEarned > 0 && userId.isNotEmpty) {
+        final userRef = _firestore.collection('users').doc(userId);
+
+        transaction.update(userRef, {
+          'total_points': FieldValue.increment(-pointsEarned),
+          'lifetime_points': FieldValue.increment(-pointsEarned),
+        });
+
+        // 3. Log point removal history
+        final historyRef = userRef.collection('point_history').doc();
+        transaction.set(historyRef, {
+          'title': 'Points Removed (Cancellation)',
+          'description': 'Cancelled booking for $packageTitle',
+          'amount': -pointsEarned,
+          'timestamp': FieldValue.serverTimestamp(),
+          'type': 'spend',
+        });
+        // 4. Refund voucher if applicable
+        if (data['voucher_id'] != null &&
+            data['voucher_id'].toString().isNotEmpty &&
+            userId.isNotEmpty) {
+          final voucherRef = _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('my_vouchers')
+              .doc(data['voucher_id']);
+          transaction.update(voucherRef, {'redeemed': false});
+        }
+      }
     });
   }
 }

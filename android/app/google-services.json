@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "731804815132-9dur420hetn5gp3ipgd33ff29s187907.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.muc_jomtravel",
+            "certificate_hash": "822a2a69191629647d1c30ee4aa5fd747c625418"
+          }
+        },
+        {
           "client_id": "731804815132-ghkgr1f15b425soan4kqv843ib3455pp.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

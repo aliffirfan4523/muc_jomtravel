@@ -1,220 +1,376 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/shared/notifications.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// User profile screen
-/// Can be connected to Firebase Authentication later
-class UserProfileScreen extends StatelessWidget {
+class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final userService = UserService();
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background
-      extendBodyBehindAppBar: true, // For transparent app bar effect
-      appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        automaticallyImplyLeading: false,
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  final _userService = UserService();
+  final _authService = AuthService();
+  final _user = FirebaseAuth.instance.currentUser;
+
+  Future<void> _showEditNameDialog(AppUser appUser) async {
+    final controller = TextEditingController(text: appUser.fullName);
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Full Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(appUser.userId)
+                    .update({'name': controller.text.trim()});
+                if (mounted) Navigator.pop(context);
+                setState(() {});
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
-      body: user == null
-          ? const Center(child: Text('No user logged in'))
-          : FutureBuilder<AppUser?>(
-              future: userService.getUserData(user!.uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
-                if (!snapshot.hasData || snapshot.data == null) {
-                  return const Center(child: Text('User profile not found.'));
-                }
-
-                final appUser = snapshot.data!;
-
-                return Stack(
-                  children: [
-                    /// 1. Header Background
-                    Container(
-                      height: 280,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF4CA1AF), Color(0xFF2C3E50)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(32),
-                        ),
-                      ),
-                    ),
-
-                    /// 2. Content
-                    SafeArea(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-
-                          /// User Avatar
-                          Center(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 4,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.white,
-                                child: Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          /// User Name
-                          Text(
-                            appUser.fullName,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(blurRadius: 2, color: Colors.black26),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            appUser.email,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          /// Details Cards
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              children: [
-                                _buildInfoCard(
-                                  icon: Icons.email_outlined,
-                                  title: 'Email',
-                                  value: appUser.email,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildInfoCard(
-                                  icon: Icons.badge_outlined,
-                                  title: 'User ID',
-                                  value: appUser
-                                      .userId, // Displaying User ID for reference
-                                ),
-                                const SizedBox(height: 12),
-                                _buildInfoCard(
-                                  icon: Icons.admin_panel_settings_outlined,
-                                  title: 'Account Type',
-                                  value: appUser.isAdmin ? 'Admin' : 'User',
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const Spacer(),
-
-                          /// Logout Button
-                          Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  await AuthService().signOut();
-                                  if (context.mounted) {
-                                    Navigator.of(
-                                      context,
-                                    ).popUntil((route) => route.isFirst);
-                                  }
-                                },
-                                icon: const Icon(Icons.logout),
-                                label: const Text('Logout'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  foregroundColor: Colors.white,
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
     );
   }
 
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: Colors.blue.shade700),
+  Future<void> _showChangePasswordDialog() async {
+    final controller = TextEditingController();
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'New Password'),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        subtitle: Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () async {
+              try {
+                if (controller.text.length < 6) {
+                  throw Exception("Password must be at least 6 characters");
+                }
+                await _user?.updatePassword(controller.text);
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password updated successfully'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isLoggingOut = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_user == null || _isLoggingOut)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user!.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.data?.data() as Map<String, dynamic>?;
+          if (data == null) return const Center(child: Text('User not found'));
+
+          final appUser = AppUser.fromMap(data);
+          final totalPoints = (data['total_points'] ?? 0).toInt();
+
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 180,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF4CA1AF), Color(0xFF2C3E50)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 40),
+                        const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.white24,
+                          child: Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          appUser.fullName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          appUser.email,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle('Rewards & Points'),
+                      _buildRewardCard(totalPoints),
+
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Account Settings'),
+                      _buildMenuCard([
+                        _buildMenuItem(
+                          icon: Icons.person_outline,
+                          title: 'Edit Profile Name',
+                          onTap: () => _showEditNameDialog(appUser),
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.lock_outline,
+                          title: 'Change Password',
+                          onTap: _showChangePasswordDialog,
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.email_outlined,
+                          title: 'Account Email',
+                          subtitle: appUser.email,
+                          onTap: null, // Static item
+                        ),
+                      ]),
+
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('Support'),
+                      _buildMenuCard([
+                        _buildMenuItem(
+                          icon: Icons.help_outline,
+                          title: 'Help Center',
+                          onTap: () {},
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.description_outlined,
+                          title: 'Terms of Service',
+                          onTap: () {},
+                        ),
+                        /*_buildMenuItem(
+                          icon: Icons.delete_outline,
+                          title: 'Delete Account',
+                          textColor: Colors.red,
+                          onTap: () {},
+                        ),*/
+                      ]),
+
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            setState(() => _isLoggingOut = true);
+                            await _authService.signOut();
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text(
+                            'Logout',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black54,
         ),
       ),
+    );
+  }
+
+  Widget _buildRewardCard(int points) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.stars_rounded,
+              color: Colors.amber,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Available Balance',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              Text(
+                '$points pts',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: () {
+              ChangeTabNotification(2).dispatch(context);
+            },
+            child: const Text('Details'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(List<Widget> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(children: items),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    Color? textColor,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: textColor ?? Colors.blueGrey, size: 22),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: textColor ?? Colors.black87,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle, style: const TextStyle(fontSize: 12))
+          : null,
+      trailing: onTap != null
+          ? const Icon(Icons.chevron_right, size: 20, color: Colors.grey)
+          : null,
     );
   }
 }

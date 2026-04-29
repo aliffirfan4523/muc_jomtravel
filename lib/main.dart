@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:muc_jomtravel/auth_gate.dart';
 import 'package:muc_jomtravel/firebase_options.dart';
+import 'package:muc_jomtravel/src/screen/admin/admin_vouchers.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_booking.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_packages.dart';
 import 'package:muc_jomtravel/src/screen/admin/view_user_data.dart';
@@ -42,7 +43,8 @@ class MainApp extends StatelessWidget {
         "/adminViewBooking": (_) => AdminViewBooking(),
         "/adminViewPackages": (_) => AdminViewPackages(),
         "/adminViewUserData": (_) => AdminViewUserData(),
-
+        "/adminViewVouchers": (_) => AdminVoucherScreen(),
+        "/points_reward_page": (_) => UserNavigationView(selectedIndex: 2),
         "/userDashboard": (_) => UserNavigationView(selectedIndex: 0),
       },
       home: AuthGate(),

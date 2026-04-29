@@ -178,11 +178,59 @@ class BookingInfoScreen extends StatelessWidget {
 
                       const Divider(height: 40),
 
+                      /// Rewards Section
+                      if (booking.pointsEarned > 0) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.green.shade100),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.stars_rounded, color: Colors.green),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Rewards Earned',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '+${booking.pointsEarned} pts',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 40),
+                      ],
+
+                      /// Price Breakdown
+                      const Text(
+                        'Price Breakdown',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _priceRow('Original Price', 'RM ${booking.originalPrice.toStringAsFixed(2)}'),
+                      if (booking.discountAmount > 0)
+                        _priceRow(
+                          'Discount (${booking.voucherCode})',
+                          '- RM ${booking.discountAmount.toStringAsFixed(2)}',
+                          isDiscount: true,
+                        ),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Total Price',
+                            'Total Paid',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -217,7 +265,7 @@ class BookingInfoScreen extends StatelessWidget {
                           builder: (context) => AlertDialog(
                             title: const Text('Cancel Booking'),
                             content: const Text(
-                              'Are you sure you want to cancel this booking?',
+                              'Are you sure you want to cancel this booking? Earned points will be removed, and any used voucher will be returned to your account.',
                             ),
                             actions: [
                               TextButton(
@@ -332,6 +380,29 @@ class BookingInfoScreen extends StatelessWidget {
         const SizedBox(width: 8),
         Text(text, style: const TextStyle(fontSize: 15)),
       ],
+    );
+  }
+
+  Widget _priceRow(String label, String value, {bool isDiscount = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDiscount ? Colors.green : Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -17,18 +17,7 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
   int? _selectedIndex;
   final String uid = FirebaseAuth.instance.currentUser!.uid;
   final VoucherService _voucherService = VoucherService();
-  List<Voucher> vouchers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    //Pull vouchers from backend for the user
-    _voucherService.getUserVouchers(uid).then((vouchers) {
-      setState(() {
-        this.vouchers = vouchers;
-      });
-    });
-  }
+  Voucher? _tempSelectedVoucher;
 
   @override
   void dispose() {
@@ -48,99 +37,98 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
         elevation: 0,
       ),
       backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          Container(
-            color: shopeeOrange,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.confirmation_num_outlined,
-                    color: shopeeOrange,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _voucherCodeController,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter voucher code',
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(
-                        color: shopeeOrange,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: vouchers.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final voucher = vouchers[index];
-                final selected = _selectedIndex == index;
+      body: StreamBuilder<List<Voucher>>(
+        stream: _voucherService.getUserVouchersStream(uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => setState(() => _selectedIndex = index),
-                  child: VoucherCard(
-                    selected: selected,
-                    color: shopeeOrange,
-                    voucher: voucher,
+          final vouchers = snapshot.data?.where((v) => !v.redeemed && !v.expired).toList() ?? [];
+
+          return Column(
+            children: [
+              Container(
+                color: shopeeOrange,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                );
-              },
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              color: Colors.white,
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _selectedIndex == null
-                      ? null
-                      : () => Navigator.pop(context, vouchers[_selectedIndex!]),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: shopeeOrange,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                    disabledForegroundColor: Colors.grey.shade500,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Confirm Voucher',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.confirmation_num_outlined, color: shopeeOrange),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _voucherCodeController,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter voucher code',
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('Apply', style: TextStyle(color: shopeeOrange, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
+              Expanded(
+                child: vouchers.isEmpty
+                    ? const Center(child: Text('No vouchers available'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: vouchers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final voucher = vouchers[index];
+                          final isSelected = _tempSelectedVoucher?.voucherId == voucher.voucherId;
+
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => setState(() => _tempSelectedVoucher = voucher),
+                            child: VoucherCard(
+                              selected: isSelected,
+                              color: shopeeOrange,
+                              voucher: voucher,
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  color: Colors.white,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _tempSelectedVoucher == null
+                          ? null
+                          : () => Navigator.pop(context, _tempSelectedVoucher),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: shopeeOrange,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade500,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Confirm Voucher', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

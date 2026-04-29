@@ -35,13 +35,21 @@ class AuthGate extends StatelessWidget {
       // Add an initial activity log to "initialize" the sub-collection
       await _initializePointHistory(user.uid, "Welcome Reward", 1000);
       doc = await docRef.get();
-    } else if (!doc.data()!.containsKey('total_points')) {
-      // EXISTING USER LOGIC
-      await docRef.update({'total_points': 0, 'lifetime_points': 0});
-      await _initializePointHistory(user.uid, "Welcome Reward", 1000);
-      doc = await docRef.get(); // Refresh
+    } else {
+      final data = doc.data();
+      if (data == null || !data.containsKey('total_points')) {
+        // EXISTING USER LOGIC (if missing points field)
+        await docRef.update({'total_points': 0, 'lifetime_points': 0});
+        await _initializePointHistory(user.uid, "Welcome Reward", 1000);
+        doc = await docRef.get(); // Refresh
+      }
     }
-    return doc.data()!;
+
+    final data = doc.data();
+    if (data == null) {
+      throw Exception("Failed to retrieve user data for ${user.uid}");
+    }
+    return data;
   }
 
   // Helper to create the sub-collection by adding the first entry
@@ -111,6 +119,44 @@ class AuthGate extends StatelessWidget {
           future: _ensureUser(user), // 🔑 ONE FUTURE
           builder: (context, userSnap) {
             if (userSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (userSnap.hasError) {
+              return Scaffold(
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading user profile',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          userSnap.error.toString(),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () => FirebaseAuth.instance.signOut(),
+                          child: const Text('Sign Out'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            if (!userSnap.hasData) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );

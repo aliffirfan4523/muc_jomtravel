@@ -47,7 +47,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     builder: (context, snapshot) {
                       final stats =
                           snapshot.data ??
-                          {'packages': 0, 'bookings': 0, 'users': 0};
+                          {'packages': 0, 'bookings': 0, 'users': 0, 'vouchers': 0};
                       final isLoading =
                           snapshot.connectionState == ConnectionState.waiting;
 
@@ -86,7 +86,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             children: [
                               _DashboardStatCard(
                                 title: "Vouchers",
-                                count: stats['users']!,
+                                count: stats['vouchers'] ?? 0,
                                 icon: Icons.local_offer_outlined,
                                 color: const Color.fromARGB(255, 0, 208, 255),
                                 isLoading: isLoading,
@@ -161,12 +161,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         title: "Manage Vouchers",
                         icon: Icons.local_offer_outlined,
                         color: const Color.fromARGB(255, 0, 208, 255),
-                        onTap: () async {
-                          // Future implementation
-                          //await insertKelantanPackages();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Coming soon!")),
-                          );
+                        onTap: () {
+                          Navigator.pushNamed(context, "/adminViewVouchers")
+                              .then((_) => setState(() {}));
                         },
                       ),
                       _ActionCard(

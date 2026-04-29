@@ -16,8 +16,6 @@ class _MyVoucherState extends State<MyVoucher>
     with SingleTickerProviderStateMixin {
   late TabController tabController;
   final VoucherService _voucherService = VoucherService();
-  List<Voucher> activeVouchers = [];
-  List<Voucher> usedExpiredVouchers = [];
 
   @override
   void initState() {
@@ -25,24 +23,15 @@ class _MyVoucherState extends State<MyVoucher>
     tabController.addListener(() {
       setState(() {});
     });
-
-    _voucherService
-        .getUserVouchers(FirebaseAuth.instance.currentUser!.uid)
-        .then((vouchers) {
-          setState(() {
-            this.activeVouchers = vouchers
-                .where((v) => !v.redeemed && !v.expired)
-                .toList();
-            this.usedExpiredVouchers = vouchers
-                .where((v) => v.redeemed || v.expired)
-                .toList();
-          });
-        });
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null)
+      return const Scaffold(body: Center(child: Text('Please login')));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Voucher'),
@@ -51,60 +40,59 @@ class _MyVoucherState extends State<MyVoucher>
           unselectedLabelColor: Colors.grey,
           labelColor: Colors.blue,
           tabAlignment: TabAlignment.center,
-          labelPadding: EdgeInsets.symmetric(horizontal: 60.0),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 60.0),
           indicatorColor: Colors.blue,
-          tabs: <Tab>[
+          tabs: const [
             Tab(text: "Active"),
             Tab(text: "Used/Expired"),
           ],
           controller: tabController,
         ),
       ),
-      body: TabBarView(
-        controller: tabController,
-        children: [
-          activeVouchers.isEmpty
-              ? Center(child: Text("No active vouchers"))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: activeVouchers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final voucher = activeVouchers[index];
+      body: StreamBuilder<List<Voucher>>(
+        stream: _voucherService.getUserVouchersStream(user.uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {},
-                      child: VoucherCard(
-                        selected: false,
-                        color: Colors.blue,
-                        voucher: voucher,
-                      ),
-                    );
-                  },
-                ),
-          usedExpiredVouchers.isEmpty
-              ? Center(child: Text("No used or expired vouchers"))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: usedExpiredVouchers.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final voucher = usedExpiredVouchers[index];
+          final vouchers = snapshot.data ?? [];
+          final activeVouchers = vouchers
+              .where((v) => !v.redeemed && !v.expired)
+              .toList();
+          final usedExpiredVouchers = vouchers
+              .where((v) => v.redeemed || v.expired)
+              .toList();
 
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {},
-                      child: VoucherCard(
-                        selected: false,
-                        color: Colors.blue,
-                        voucher: voucher,
-                      ),
-                    );
-                  },
-                ),
-        ],
+          return TabBarView(
+            controller: tabController,
+            children: [
+              _buildVoucherList(activeVouchers, "No active vouchers"),
+              _buildVoucherList(
+                usedExpiredVouchers,
+                "No used or expired vouchers",
+              ),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildVoucherList(List<Voucher> list, String emptyMessage) {
+    if (list.isEmpty) return Center(child: Text(emptyMessage));
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: list.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final voucher = list[index];
+        return VoucherCard(
+          selected: false,
+          color: Colors.blue,
+          voucher: voucher,
+        );
+      },
     );
   }
 }
