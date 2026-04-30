@@ -51,21 +51,39 @@ class _BookingFormState extends State<BookingForm> {
     }
   }
 
-  double get _currentTotal {
+  double get _subTotal {
     double total =
         (adults * widget.package.priceAdult) +
         (children * widget.package.priceChild);
     if (addMeal) total += (adults + children) * 30;
     if (addTourGuide) total += 50;
     if (addTransport) total += 100;
+    return total;
+  }
+
+  double get _currentTotal {
+    double total = _subTotal;
     if (selectedVoucher != null) total -= selectedVoucher!.discountAmount;
     return total < 0 ? 0 : total;
+  }
+
+  void _validateVoucher() {
+    if (selectedVoucher != null && _subTotal < selectedVoucher!.minimumSpend) {
+      selectedVoucher = null;
+      voucherController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voucher removed: Minimum spend not met.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+    }
   }
 
   Future<void> _openVoucherSelection() async {
     final voucher = await Navigator.push<Voucher>(
       context,
-      MaterialPageRoute(builder: (_) => const SelectVoucherPage()),
+      MaterialPageRoute(builder: (_) => SelectVoucherPage(currentTotal: _subTotal)),
     );
 
     if (voucher != null) {
@@ -209,14 +227,14 @@ class _BookingFormState extends State<BookingForm> {
           _counterItem(
             'Adults',
             adults,
-            (v) => setState(() => adults = v),
+            (v) => setState(() { adults = v; _validateVoucher(); }),
             min: 1,
           ),
           Container(width: 1, height: 40, color: AppColors.divider),
           _counterItem(
             'Children',
             children,
-            (v) => setState(() => children = v),
+            (v) => setState(() { children = v; _validateVoucher(); }),
           ),
         ],
       ),
@@ -312,7 +330,7 @@ class _BookingFormState extends State<BookingForm> {
           'Personal expert for your group',
           50,
           addTourGuide,
-          (v) => setState(() => addTourGuide = v),
+          (v) => setState(() { addTourGuide = v; _validateVoucher(); }),
         ),
         const SizedBox(height: 12),
         _addOnTile(
@@ -320,7 +338,7 @@ class _BookingFormState extends State<BookingForm> {
           'Full day local delicacies',
           30,
           addMeal,
-          (v) => setState(() => addMeal = v),
+          (v) => setState(() { addMeal = v; _validateVoucher(); }),
           perPerson: true,
         ),
         const SizedBox(height: 12),
@@ -329,7 +347,7 @@ class _BookingFormState extends State<BookingForm> {
           'Round trip hotel transfer',
           100,
           addTransport,
-          (v) => setState(() => addTransport = v),
+          (v) => setState(() { addTransport = v; _validateVoucher(); }),
         ),
       ],
     );

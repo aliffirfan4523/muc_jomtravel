@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
-import 'payment_screen.dart';
 
 import '../../model/voucher.dart';
 
@@ -93,16 +92,7 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
       );
 
       if (mounted) {
-        // Navigate directly to Payment Screen using the known ID
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentScreen(
-              bookingId: widget.bookingSessionId, 
-              amount: originalPrice - discountAmount
-            ),
-          ),
-        );
+        Navigator.pushReplacementNamed(context, '/bookingSuccesful');
       }
     } catch (e) {
       if (mounted) {
@@ -284,7 +274,7 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
                   : const Text(
-                      'Confirm & Proceed to Payment',
+                      'Confirm Booking',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
               ),

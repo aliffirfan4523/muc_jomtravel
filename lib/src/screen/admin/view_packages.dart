@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/screen/admin/manage_package_form.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 class AdminViewPackages extends StatefulWidget {
   const AdminViewPackages({super.key});
@@ -49,9 +50,17 @@ class _AdminViewPackagesState extends State<AdminViewPackages> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Manage Packages")),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text("Manage Packages", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToForm(),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -99,40 +108,101 @@ class _AdminViewPackagesState extends State<AdminViewPackages> {
                 );
               }
 
-              return Card(
-                elevation: 3,
+              return Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: package.image.isNotEmpty
-                      ? CircleAvatar(
-                          backgroundImage: NetworkImage(package.image.first),
-                        )
-                      : const CircleAvatar(child: Icon(Icons.travel_explore)),
-                  title: Text(
-                    package.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Row(
                     children: [
-                      const SizedBox(height: 4),
-                      Text("Location: ${package.location}"),
-                      Text(
-                        "Adult: RM${package.priceAdult} | Child: RM${package.priceChild}",
+                      /// Image thumbnail
+                      SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: package.image.isNotEmpty
+                            ? Image.network(
+                                package.image.first,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppColors.border,
+                                    child: const Icon(Icons.broken_image, color: AppColors.textLight),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: AppColors.primaryLight,
+                                child: const Icon(Icons.travel_explore, color: AppColors.primary, size: 40),
+                              ),
                       ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _navigateToForm(package: package),
+                      
+                      /// Details
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                package.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      package.location,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                children: [
+                                  _priceChip("Adult", package.priceAdult),
+                                  _priceChip("Child", package.priceChild),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deletePackage(package!),
+
+                      /// Actions
+                      Column(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                            onPressed: () => _navigateToForm(package: package),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                            onPressed: () => _deletePackage(package!),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -141,6 +211,24 @@ class _AdminViewPackagesState extends State<AdminViewPackages> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _priceChip(String label, double price) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        "$label: RM${price.toStringAsFixed(0)}",
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
       ),
     );
   }

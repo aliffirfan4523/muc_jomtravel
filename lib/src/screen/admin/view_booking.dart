@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 class AdminViewBooking extends StatefulWidget {
   const AdminViewBooking({super.key});
@@ -54,7 +55,13 @@ class _AdminViewBookingState extends State<AdminViewBooking> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("All Bookings")),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text("All Bookings", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
@@ -96,10 +103,17 @@ class _AdminViewBookingState extends State<AdminViewBooking> {
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,64 +122,153 @@ class _AdminViewBookingState extends State<AdminViewBooking> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "Booking ID: ...${doc.id.substring(doc.id.length - 6)}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "BOOKING ID",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textLight,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            Text(
+                              "#${doc.id.substring(doc.id.length - 6).toUpperCase()}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          booking.status,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _getStatusColor(booking.status),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(booking.status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            booking.status.toUpperCase(),
+                            style: TextStyle(
+                              color: _getStatusColor(booking.status),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text("User: ${booking.userName} (${booking.userEmail})"),
-                    Text("Package: ${booking.packageTitle}"),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.person, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "${booking.userName} (${booking.userEmail})",
+                            style: const TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.map, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            booking.packageTitle,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
                     /// Expanded details
                     if (isExpanded) ...[
-                      const Divider(height: 20),
-                      Text(
-                        "Date: ${DateFormat('dd/MM/yyyy').format(booking.visitDate)}",
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(color: AppColors.divider),
                       ),
-                      Text(
-                        "People: ${booking.adults} Adults, ${booking.children} Children",
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _detailColumn("DATE", DateFormat('dd MMM yyyy').format(booking.visitDate)),
+                          _detailColumn("GUESTS", "${booking.adults} Ad, ${booking.children} Ch"),
+                          _detailColumn("TOTAL", "RM ${booking.totalPrice.toStringAsFixed(2)}", isHighlight: true),
+                        ],
                       ),
-                      Text(
-                        "Total: RM ${booking.totalPrice.toStringAsFixed(2)}",
+                      const SizedBox(height: 16),
+                      const Text(
+                        "ADD-ONS:",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textLight,
+                          letterSpacing: 1.0,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Add-ons:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          if (booking.addTourGuide) _addOnChip("Tour Guide"),
+                          if (booking.addMeal) _addOnChip("Meal"),
+                          if (booking.addTransport) _addOnChip("Transport"),
+                          if (!booking.addTourGuide && !booking.addMeal && !booking.addTransport)
+                            _addOnChip("None", color: AppColors.textLight),
+                        ],
                       ),
-                      if (booking.addTourGuide) const Text("- Tour Guide"),
-                      if (booking.addMeal) const Text("- Meal"),
-                      if (booking.addTransport) const Text("- Transport"),
-                      if (!booking.addTourGuide &&
-                          !booking.addMeal &&
-                          !booking.addTransport)
-                        const Text("- None"),
                     ],
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
 
                     /// Action buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _linkButton(
-                          isExpanded ? "Minimize" : "View",
-                          () => _toggleView(index),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _toggleView(index),
+                            icon: Icon(
+                              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              size: 18,
+                            ),
+                            label: Text(
+                              isExpanded ? "Less Details" : "View Details",
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryLight,
+                              foregroundColor: AppColors.primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                        _linkButton(
-                          "Delete",
-                          () => _deleteBooking(doc.id),
-                          color: Colors.red,
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: () => _deleteBooking(doc.id),
+                          icon: const Icon(Icons.delete_outline),
+                          color: AppColors.error,
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.error.withOpacity(0.1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -179,31 +282,61 @@ class _AdminViewBookingState extends State<AdminViewBooking> {
     );
   }
 
-  /// Underlined clickable text
-  Widget _linkButton(
-    String text,
-    VoidCallback onTap, {
-    Color color = Colors.blue,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _detailColumn(String label, String value, {bool isHighlight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textLight,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isHighlight ? AppColors.primary : AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _addOnChip(String label, {Color color = AppColors.success}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
       child: Text(
-        text,
-        style: TextStyle(color: color, decoration: TextDecoration.underline),
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'Confirmed':
-        return Colors.green;
-      case 'Cancelled':
-        return Colors.red;
+      case 'pending':
+        return AppColors.warning;
+      case 'confirmed':
+        return AppColors.success;
+      case 'cancelled':
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.textLight;
     }
   }
 }

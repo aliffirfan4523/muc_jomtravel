@@ -7,7 +7,9 @@ import '../../model/voucher.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
 class SelectVoucherPage extends StatefulWidget {
-  const SelectVoucherPage({super.key});
+  final double currentTotal;
+
+  const SelectVoucherPage({super.key, required this.currentTotal});
 
   @override
   State<SelectVoucherPage> createState() => _SelectVoucherPageState();
@@ -32,17 +34,24 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        title: const Text('Select Voucher', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Select Voucher',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
       ),
       body: StreamBuilder<List<Voucher>>(
         stream: _voucherService.getUserVouchersStream(uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
           }
 
-          final vouchers = snapshot.data?.where((v) => !v.redeemed && !v.expired).toList() ?? [];
+          final vouchers =
+              snapshot.data?.where((v) => !v.redeemed && !v.expired).toList() ??
+              [];
 
           return Column(
             children: [
@@ -54,10 +63,16 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                     color: AppColors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.confirmation_num_outlined, color: AppColors.primary),
+                      const Icon(
+                        Icons.confirmation_num_outlined,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
@@ -71,7 +86,13 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                       ),
                       TextButton(
                         onPressed: () {},
-                        child: const Text('Apply', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Apply',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -79,18 +100,26 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
               ),
               Expanded(
                 child: vouchers.isEmpty
-                    ? const Center(child: Text('No vouchers available', style: TextStyle(color: AppColors.textSecondary)))
+                    ? const Center(
+                        child: Text(
+                          'No vouchers available',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: vouchers.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final voucher = vouchers[index];
-                          final isSelected = _tempSelectedVoucher?.voucherId == voucher.voucherId;
+                          final isSelected =
+                              _tempSelectedVoucher?.voucherId ==
+                              voucher.voucherId;
 
                           return InkWell(
                             borderRadius: BorderRadius.circular(12),
-                            onTap: () => setState(() => _tempSelectedVoucher = voucher),
+                            onTap: () =>
+                                setState(() => _tempSelectedVoucher = voucher),
                             child: VoucherCard(
                               selected: isSelected,
                               color: AppColors.primary,
@@ -117,17 +146,36 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                   child: ElevatedButton(
                     onPressed: _tempSelectedVoucher == null
                         ? null
-                        : () => Navigator.pop(context, _tempSelectedVoucher),
+                        : () {
+                            if (_tempSelectedVoucher!.minimumSpend > widget.currentTotal) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Minimum spend of RM${_tempSelectedVoucher!.minimumSpend} required.'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                              return;
+                            }
+                            Navigator.pop(context, _tempSelectedVoucher);
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppColors.border,
                       disabledForegroundColor: AppColors.textLight,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
-                    child: const Text('Confirm Voucher', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: const Text(
+                      'Confirm Voucher',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               ),

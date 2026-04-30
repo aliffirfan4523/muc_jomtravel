@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/utils/validator.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../shared/utils/time_converter.dart';
@@ -170,14 +171,24 @@ class _ManagePackageFormState extends State<ManagePackageForm> {
     final isEditing = widget.package != null;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? "Edit Package" : "New Package"),
+        title: Text(
+          isEditing ? "Edit Package" : "New Package",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
         actions: [
-          IconButton(onPressed: _savePackage, icon: const Icon(Icons.check)),
+          IconButton(
+            onPressed: _savePackage,
+            icon: const Icon(Icons.check, color: AppColors.primary),
+          ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -327,27 +338,37 @@ class _ManagePackageFormState extends State<ManagePackageForm> {
                           _imageControllers.add(TextEditingController());
                         });
                       },
-                      icon: const Icon(Icons.add),
-                      label: const Text("Add Another Image"),
+                      icon: const Icon(Icons.add, color: AppColors.primary),
+                      label: const Text("Add Another Image", style: TextStyle(color: AppColors.primary)),
                     ),
 
                     const SizedBox(height: 20),
 
                     SwitchListTile(
-                      title: const Text("Is Active"),
-                      subtitle: const Text("Visible to users"),
+                      title: const Text("Is Active", style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: const Text("Visible to users", style: TextStyle(color: AppColors.textSecondary)),
                       value: _isActive,
+                      activeColor: AppColors.primary,
                       onChanged: (val) => setState(() => _isActive = val),
                     ),
 
                     const SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 56,
                       child: ElevatedButton(
                         onPressed: _savePackage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
                         child: Text(
                           isEditing ? "Update Package" : "Create Package",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -360,13 +381,14 @@ class _ManagePackageFormState extends State<ManagePackageForm> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(top: 16, bottom: 12),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.blueGrey,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          color: AppColors.primary,
+          letterSpacing: 1.5,
         ),
       ),
     );
@@ -383,12 +405,19 @@ class _ManagePackageFormState extends State<ManagePackageForm> {
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       maxLines: maxLines,
+      style: const TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        filled: true,
+        fillColor: AppColors.cardBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 12,
+          horizontal: 16,
+          vertical: 16,
         ),
       ),
       validator: required ? (val) => requiredField(val, label) : null,
@@ -414,17 +443,23 @@ class _ManagePackageFormState extends State<ManagePackageForm> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          labelStyle: const TextStyle(color: AppColors.textSecondary),
+          filled: true,
+          fillColor: AppColors.cardBackground,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
+            horizontal: 16,
+            vertical: 16,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(time.format(context)),
-            const Icon(Icons.access_time, size: 20, color: Colors.grey),
+            Text(time.format(context), style: const TextStyle(color: AppColors.textPrimary)),
+            const Icon(Icons.access_time, size: 20, color: AppColors.primary),
           ],
         ),
       ),

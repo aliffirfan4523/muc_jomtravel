@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
-import 'payment_screen.dart';
 
 class BookingInfoScreen extends StatefulWidget {
   const BookingInfoScreen({super.key});
@@ -57,9 +56,6 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
               children: [
                 _buildTicket(booking),
                 const SizedBox(height: 24),
-                if (booking.paymentStatus == 'unpaid' && booking.status == 'pending')
-                  _buildPaymentAction(context, booking),
-                const SizedBox(height: 12),
                 if (booking.status.toLowerCase() == 'confirmed' ||
                     booking.status.toLowerCase() == 'pending')
                   _buildCancelAction(context, booking),
@@ -67,55 +63,6 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildPaymentAction(BuildContext context, Booking booking) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.timer_outlined, color: AppColors.warning),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Payment Deadline: ${DateFormat('MMM d, h:mm a').format(booking.paymentDeadline)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PaymentScreen(bookingId: booking.bookingId!, amount: booking.totalPrice),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Pay Now', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -249,12 +196,7 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
-                if (booking.paymentStatus == 'paid') _buildQRCodePlaceholder(),
-                if (booking.paymentStatus == 'unpaid')
-                  const Text(
-                    'Complete payment to view ticket',
-                    style: TextStyle(color: AppColors.textLight, fontStyle: FontStyle.italic),
-                  ),
+                if (booking.status == 'confirmed' || booking.paymentStatus == 'paid') _buildQRCodePlaceholder(),
               ],
             ),
           ),

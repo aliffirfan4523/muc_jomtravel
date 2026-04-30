@@ -55,10 +55,15 @@ class BookingService {
       'voucher_id': voucherId,
       'voucher_code': voucherCode,
       'points_earned': pointsEarned,
-      'status': 'pending', // Initially pending
-      'payment_status': 'unpaid',
+      'status': 'confirmed', // Confirmed immediately
+      'payment_status': 'paid',
       'payment_deadline': Timestamp.fromDate(deadline),
     });
+
+    // Give points immediately since payment is bypassed
+    if (pointsEarned > 0) {
+      await _voucherService.updateUserPoints(pointsEarned);
+    }
 
     // If a voucher was used, mark it as redeemed
     if (voucherId.isNotEmpty) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/shared/app_config.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 
@@ -44,7 +45,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     builder: (context, snapshot) {
                       final stats =
                           snapshot.data ??
-                          {'packages': 0, 'bookings': 0, 'users': 0, 'vouchers': 0};
+                          {
+                            'packages': 0,
+                            'bookings': 0,
+                            'users': 0,
+                            'vouchers': 0,
+                          };
                       final isLoading =
                           snapshot.connectionState == ConnectionState.waiting;
 
@@ -67,7 +73,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 color: AppColors.secondary,
                                 isLoading: isLoading,
                               ),
-                              const SizedBox(width: 12),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
                               _DashboardStatCard(
                                 title: "Users",
                                 count: stats['users']!,
@@ -75,19 +85,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 color: AppColors.textSecondary,
                                 isLoading: isLoading,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _DashboardStatCard(
-                                title: "Vouchers",
-                                count: stats['vouchers'] ?? 0,
-                                icon: Icons.local_offer_outlined,
-                                color: AppColors.info,
-                                isLoading: isLoading,
-                              ),
                               const SizedBox(width: 12),
+                              if (AppConfig.isVoucherAdminEnable) ...[
+                                _DashboardStatCard(
+                                  title: "Vouchers",
+                                  count: stats['vouchers'] ?? 0,
+                                  icon: Icons.local_offer_outlined,
+                                  color: AppColors.info,
+                                  isLoading: isLoading,
+                                ),
+                                const SizedBox(width: 12),
+                              ] else ...[
+                                const SizedBox(width: 0),
+                              ],
                               _DashboardStatCard(
                                 title: "Reviews",
                                 count: 0, // Placeholder
@@ -96,7 +106,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 isLoading: isLoading,
                               ),
                               const SizedBox(width: 12),
-                              const Expanded(child: SizedBox()),
                             ],
                           ),
                         ],
@@ -154,22 +163,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ).then((_) => setState(() {}));
                         },
                       ),
-                      _ActionCard(
-                        title: "Vouchers",
-                        icon: Icons.local_offer_outlined,
-                        color: AppColors.info,
-                        onTap: () {
-                          Navigator.pushNamed(context, "/adminViewVouchers")
-                              .then((_) => setState(() {}));
-                        },
-                      ),
+                      if (AppConfig.isVoucherAdminEnable)
+                        _ActionCard(
+                          title: "Vouchers",
+                          icon: Icons.local_offer_outlined,
+                          color: AppColors.info,
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              "/adminViewVouchers",
+                            ).then((_) => setState(() {}));
+                          },
+                        ),
                       _ActionCard(
                         title: "Reviews",
                         icon: Icons.reviews_outlined,
                         color: AppColors.success,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Coming soon!"), backgroundColor: AppColors.info),
+                            const SnackBar(
+                              content: Text("Coming soon!"),
+                              backgroundColor: AppColors.info,
+                            ),
                           );
                         },
                       ),
@@ -179,7 +194,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         color: AppColors.warning,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Coming soon!"), backgroundColor: AppColors.info),
+                            const SnackBar(
+                              content: Text("Coming soon!"),
+                              backgroundColor: AppColors.info,
+                            ),
                           );
                         },
                       ),
@@ -205,12 +223,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           bottomRight: Radius.circular(30),
         ),
         image: DecorationImage(
-          image: NetworkImage('https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black38,
-            BlendMode.darken,
+          image: NetworkImage(
+            'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80',
           ),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(Colors.black38, BlendMode.darken),
         ),
       ),
       child: Stack(
@@ -314,7 +331,10 @@ class _DashboardStatCard extends StatelessWidget {
                   ),
             Text(
               title,
-              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
