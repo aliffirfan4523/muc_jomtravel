@@ -18,6 +18,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final _authService = AuthService();
   final _user = FirebaseAuth.instance.currentUser;
 
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return 'T';
+    final parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
   Future<void> _showEditNameDialog(AppUser appUser) async {
     final controller = TextEditingController(text: appUser.fullName);
     return showDialog(
@@ -41,7 +50,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     .doc(appUser.userId)
                     .update({'name': controller.text.trim()});
                 if (mounted) Navigator.pop(context);
-                setState(() {});
+                if (mounted) setState(() {});
               }
             },
             child: const Text('Save', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
@@ -124,25 +133,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           return CustomScrollView(
             slivers: [
               SliverAppBar(
-                expandedHeight: 180,
+                expandedHeight: 200,
                 pinned: true,
                 backgroundColor: AppColors.primary,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: const BoxDecoration(
-                      gradient: AppColors.primaryGradient,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 40),
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 40,
-                          backgroundColor: Colors.white24,
-                          child: Icon(
-                            Icons.person,
-                            size: 50,
-                            color: Colors.white,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            _getInitials(appUser.fullName),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -152,6 +168,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
                           ),
                         ),
                         Text(
@@ -179,12 +196,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       _buildSectionTitle('Account Settings'),
                       _buildMenuCard([
                         _buildMenuItem(
-                          icon: Icons.person_outline,
+                          icon: Icons.person_outline_rounded,
                           title: 'Edit Profile Name',
                           onTap: () => _showEditNameDialog(appUser),
                         ),
                         _buildMenuItem(
-                          icon: Icons.lock_outline,
+                          icon: Icons.lock_outline_rounded,
                           title: 'Change Password',
                           onTap: _showChangePasswordDialog,
                         ),
@@ -200,7 +217,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       _buildSectionTitle('Support'),
                       _buildMenuCard([
                         _buildMenuItem(
-                          icon: Icons.help_outline,
+                          icon: Icons.help_outline_rounded,
                           title: 'Help Center',
                           onTap: () {},
                         ),
@@ -220,7 +237,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             setState(() => _isLoggingOut = true);
                             await _authService.signOut();
                           },
-                          icon: const Icon(Icons.logout),
+                          icon: const Icon(Icons.logout_rounded),
                           label: const Text(
                             'Logout',
                             style: TextStyle(
@@ -230,7 +247,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
+                            side: const BorderSide(color: AppColors.error, width: 1.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -256,8 +273,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title,
         style: const TextStyle(
           fontSize: 16,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
           color: AppColors.textPrimary,
+          letterSpacing: -0.3,
         ),
       ),
     );
@@ -269,6 +287,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -322,10 +341,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildMenuCard(List<Widget> items) {
+    List<Widget> dividedItems = [];
+    for (int i = 0; i < items.length; i++) {
+      dividedItems.add(items[i]);
+      if (i < items.length - 1) {
+        dividedItems.add(const Divider(height: 1, color: AppColors.divider));
+      }
+    }
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -334,7 +361,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ],
       ),
-      child: Column(children: items),
+      child: Column(children: dividedItems),
     );
   }
 
@@ -360,7 +387,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ? Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textLight))
           : null,
       trailing: onTap != null
-          ? const Icon(Icons.chevron_right, size: 20, color: AppColors.textLight)
+          ? const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textLight)
           : null,
     );
   }

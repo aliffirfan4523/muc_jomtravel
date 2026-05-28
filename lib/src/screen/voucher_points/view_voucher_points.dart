@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 import 'package:muc_jomtravel/src/shared/widgets/widgets.dart';
 import 'redeem_voucher.dart';
 import 'my_voucher.dart';
@@ -22,135 +22,202 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('My Rewards', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.card_giftcard),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyVoucher()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .snapshots(),
-        builder: (context, userSnapshot) {
-          if (userSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (userSnapshot.hasError) {
-            return Center(child: Text('Error: ${userSnapshot.error}'));
-          }
-          
-          final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
-          final totalPoints = (userData?['total_points'] ?? 0).toInt();
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            }
+            if (userSnapshot.hasError) {
+              return Center(child: Text('Error: ${userSnapshot.error}', style: const TextStyle(color: AppColors.error)));
+            }
+            
+            final userData = userSnapshot.data?.data() as Map<String, dynamic>?;
+            final totalPoints = (userData?['total_points'] ?? 0).toInt();
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  balanceWidget(context, totalPoints),
-                  const SizedBox(height: 30),
-                  Row(
-                    children: [
-                      const Text(
-                        "Points Activity",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    
+                    /// Standalone Modern Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'My Rewards',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              'Redeem discounts & points benefits',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PointsHistoryView(),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => MyVoucher()),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryLight,
+                              border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
+                            ),
+                            child: const Icon(
+                              Icons.card_giftcard_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    balanceWidget(context, totalPoints),
+                    const SizedBox(height: 30),
+                    
+                    Row(
+                      children: [
+                        const Text(
+                          "Points Activity",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PointsHistoryView(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "View All",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .collection('point_history')
+                          .orderBy('timestamp', descending: true)
+                          .limit(5)
+                          .snapshots(),
+                      builder: (context, historySnapshot) {
+                        if (historySnapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: LinearProgressIndicator(color: AppColors.primary));
+                        }
+                        
+                        final docs = historySnapshot.data?.docs ?? [];
+                        
+                        if (docs.isEmpty) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBackground,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border, width: 1),
+                            ),
+                            alignment: Alignment.center,
+                            child: Column(
+                              children: [
+                                Icon(Icons.history_toggle_off_rounded, size: 48, color: AppColors.textLight.withOpacity(0.5)),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  "No recent activity",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           );
-                        },
-                        child: const Text(
-                          "View All",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(user.uid)
-                        .collection('point_history')
-                        .orderBy('timestamp', descending: true)
-                        .limit(5) // Show top 5 on dashboard
-                        .snapshots(),
-                    builder: (context, historySnapshot) {
-                      if (historySnapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: LinearProgressIndicator());
-                      }
-                      
-                      final docs = historySnapshot.data?.docs ?? [];
-                      
-                      if (docs.isEmpty) {
+                        }
+
                         return Container(
-                          padding: const EdgeInsets.all(40),
-                          alignment: Alignment.center,
-                          child: Column(
-                            children: [
-                              Icon(Icons.history_toggle_off, size: 48, color: Colors.grey[300]),
-                              const SizedBox(height: 12),
-                              Text("No recent activity", style: TextStyle(color: Colors.grey[400])),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border, width: 1),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: AppColors.shadow,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
                             ],
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: docs.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.divider),
+                            itemBuilder: (context, index) {
+                              var data = docs[index].data() as Map<String, dynamic>;
+                              bool isEarn = (data['amount'] ?? 0) > 0;
+
+                              return PointsActivityCard(
+                                isEarn: isEarn,
+                                title: data['title'] ?? 'Transaction',
+                                timestamp: data['timestamp'] ?? Timestamp.now(),
+                                amount: (data['amount'] ?? 0).abs().toInt(),
+                              );
+                            },
+                          ),
                         );
-                      }
-
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: docs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          var data = docs[index].data() as Map<String, dynamic>;
-                          bool isEarn = (data['amount'] ?? 0) > 0;
-
-                          return PointsActivityCard(
-                            isEarn: isEarn,
-                            title: data['title'] ?? 'Transaction',
-                            timestamp: data['timestamp'] ?? Timestamp.now(),
-                            amount: (data['amount'] ?? 0).abs().toInt(),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                ],
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -161,14 +228,14 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF4CA1AF), Color(0xFF2C3E50)],
+          colors: [AppColors.primary, AppColors.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2C3E50).withOpacity(0.3),
+            color: AppColors.primary.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -177,14 +244,14 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
       child: Column(
         children: [
           const Text(
-            "Available Points",
-            style: TextStyle(fontSize: 16, color: Colors.white70, fontWeight: FontWeight.w500),
+            "Available Balance",
+            style: TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 0.5),
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.stars_rounded, color: Colors.amber, size: 32),
+              const Icon(Icons.workspace_premium_rounded, color: AppColors.warning, size: 36),
               const SizedBox(width: 8),
               Text(
                 points.toString(),
@@ -192,7 +259,7 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  letterSpacing: 1,
+                  letterSpacing: -0.5,
                 ),
               ),
             ],
@@ -210,13 +277,13 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.local_offer, size: 18),
-                  label: const Text("Redeem"),
+                  icon: const Icon(Icons.local_offer, size: 16),
+                  label: const Text("Redeem Vouchers", style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF2C3E50),
+                    foregroundColor: AppColors.primary,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
@@ -230,12 +297,12 @@ class _ViewVoucherPointsState extends State<ViewVoucherPoints> {
                       MaterialPageRoute(builder: (context) => MyVoucher()),
                     );
                   },
-                  icon: const Icon(Icons.card_giftcard, size: 18),
-                  label: const Text("My Vouchers"),
+                  icon: const Icon(Icons.card_giftcard_rounded, size: 16),
+                  label: const Text("My Vouchers", style: TextStyle(fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: Colors.white60, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),

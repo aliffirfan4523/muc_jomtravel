@@ -181,7 +181,3 @@ Future<void> insertKelantanPackages() async {
 
   //await batch.commit();
 }
-
-
-  //await batch.commit();
-}

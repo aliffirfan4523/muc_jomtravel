@@ -42,103 +42,177 @@ class _AdminVoucherScreenState extends State<AdminVoucherScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(isEditing ? 'Edit Voucher' : 'Add New Voucher'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        hintText: 'Example: RM10 OFF',
-                      ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    isEditing ? Icons.edit_note_rounded : Icons.add_card_rounded,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isEditing ? 'Edit Voucher' : 'Add New Voucher',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                    TextField(
-                      controller: descController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                      ),
-                    ),
-                    TextField(
-                      controller: codeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Voucher Code',
-                        hintText: 'Example: TRAVEL10',
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: pointsController,
-                            decoration: const InputDecoration(
-                              labelText: 'Points Required',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: titleController,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Title',
+                          hintText: 'Example: RM10 OFF',
+                          prefixIcon: const Icon(Icons.title_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: discountController,
-                            decoration: const InputDecoration(
-                              labelText: 'Discount RM',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descController,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'Example: Get RM10 off travel package',
+                          prefixIcon: const Icon(Icons.description_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
-                      ],
-                    ),
-                    TextField(
-                      controller: minSpendController,
-                      decoration: const InputDecoration(
-                        labelText: 'Minimum Spend RM',
                       ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    TextField(
-                      controller: expiryController,
-                      decoration: const InputDecoration(
-                        labelText: 'Expiry Date Text',
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: codeController,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Voucher Code',
+                          hintText: 'Example: TRAVEL10',
+                          prefixIcon: const Icon(Icons.vpn_key_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
                       ),
-                    ),
-                    DropdownButtonFormField<String>(
-                      value: selectedType,
-                      items: [
-                        VoucherType.Voucher.name,
-                        VoucherType.Package.name,
-                      ]
-                          .map(
-                            (type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: pointsController,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              decoration: InputDecoration(
+                                labelText: 'Points Required',
+                                prefixIcon: const Icon(Icons.stars_rounded, color: AppColors.primary, size: 20),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              ),
+                              keyboardType: TextInputType.number,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: discountController,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              decoration: InputDecoration(
+                                labelText: 'Discount RM',
+                                prefixIcon: const Icon(Icons.local_offer_rounded, color: AppColors.primary, size: 20),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: minSpendController,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Minimum Spend RM',
+                          prefixIcon: const Icon(Icons.shopping_bag_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: expiryController,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Expiry Date Text',
+                          prefixIcon: const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedType,
+                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                        items: [
+                          VoucherType.Voucher.name,
+                          VoucherType.Package.name,
+                        ]
+                            .map(
+                              (type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
 
-                        setDialogState(() {
-                          selectedType = value;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Category',
+                          setDialogState(() {
+                            selectedType = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Category',
+                          prefixIcon: const Icon(Icons.category_rounded, color: AppColors.primary, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   onPressed: () async {
                     final title = titleController.text.trim();
@@ -746,7 +820,7 @@ class _AdminVoucherScreenState extends State<AdminVoucherScreen> {
                   foregroundColor: Colors.white,
                 ),
               ),
-              OutlinedButton.icon(
+              /*OutlinedButton.icon(
                 onPressed: _seedInitialVouchers,
                 icon: const Icon(Icons.playlist_add_check),
                 label: const Text('Seed Initial Vouchers'),
@@ -754,7 +828,7 @@ class _AdminVoucherScreenState extends State<AdminVoucherScreen> {
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
                 ),
-              ),
+              ),*/
             ],
           ),
         ),

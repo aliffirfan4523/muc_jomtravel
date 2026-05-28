@@ -140,7 +140,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           Navigator.pushNamed(
                             context,
                             "/adminViewPackages",
-                          ).then((_) => setState(() {}));
+                          ).then((_) {
+                            if (mounted) setState(() {});
+                          });
                         },
                       ),
                       _ActionCard(
@@ -159,7 +161,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           Navigator.pushNamed(
                             context,
                             "/adminViewUserData",
-                          ).then((_) => setState(() {}));
+                          ).then((_) {
+                            if (mounted) setState(() {});
+                          });
                         },
                       ),
                       if (AppConfig.isVoucherAdminEnable)
@@ -171,7 +175,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             Navigator.pushNamed(
                               context,
                               "/adminViewVouchers",
-                            ).then((_) => setState(() {}));
+                            ).then((_) {
+                              if (mounted) setState(() {});
+                            });
                           },
                         ),
                       _ActionCard(
@@ -182,7 +188,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           Navigator.pushNamed(
                             context,
                             "/adminReviewsFeedback",
-                          ).then((_) => setState(() {}));
+                          ).then((_) {
+                            if (mounted) setState(() {});
+                          });
                         },
                       ),
                       _ActionCard(
@@ -232,9 +240,43 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Positioned(
             top: 40,
             right: 20,
-            child: CircleAvatar(
-              backgroundColor: Colors.white24,
-              child: SignoutButton(authService: _authService),
+            child: GestureDetector(
+              onTap: () async {
+                await _authService.signOut();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           const Positioned(
@@ -289,6 +331,7 @@ class _DashboardStatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1),
           boxShadow: const [
             BoxShadow(
               color: AppColors.shadow,
@@ -363,6 +406,7 @@ class _ActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border, width: 1),
           boxShadow: const [
             BoxShadow(
               color: AppColors.shadow,
