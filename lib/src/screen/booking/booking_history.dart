@@ -30,44 +30,75 @@ class BookingHistoryScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Submit Feedback'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    booking.packageTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        icon: Icon(
-                          index < selectedRating
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: Colors.amber,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            selectedRating = index + 1;
-                          });
-                        },
-                      );
-                    }),
-                  ),
-
-                  TextField(
-                    controller: feedbackController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Write your feedback',
-                      border: OutlineInputBorder(),
+              title: const Text('Submit Review & Feedback'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Package',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      booking.packageTitle,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Rating',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            index < selectedRating
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: Colors.amber,
+                            size: 30,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              selectedRating = index + 1;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: feedbackController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Write your feedback',
+                        hintText: 'Share your experience with this package...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Your feedback will be reviewed by admin before it is displayed.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -75,41 +106,93 @@ class BookingHistoryScreen extends StatelessWidget {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () async {
-                    if (feedbackController.text.trim().isEmpty) {
+                    final feedbackText = feedbackController.text.trim();
+
+                    if (feedbackText.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Please write your feedback first'),
+                          backgroundColor: AppColors.error,
                         ),
                       );
                       return;
                     }
 
-                    await FirebaseFirestore.instance
-                        .collection('feedbacks')
-                        .add({
-                          'booking_id': bookingDocId,
-                          'user_id': FirebaseAuth.instance.currentUser!.uid,
-                          'package_id': booking.packageId,
-                          'package_title': booking.packageTitle,
-                          'package_location': booking.packageLocation,
-                          'rating': selectedRating,
-                          'feedback': feedbackController.text.trim(),
-                          'created_at': FieldValue.serverTimestamp(),
-                        });
+                    try {
+                      final currentUser = FirebaseAuth.instance.currentUser;
 
-                    await FirebaseFirestore.instance
-                        .collection('bookings')
-                        .doc(bookingDocId)
-                        .update({'has_feedback': true});
+                      final userName = booking.userName.trim().isNotEmpty
+                          ? booking.userName.trim()
+                          : currentUser?.displayName ?? 'Unknown User';
 
-                    if (context.mounted) {
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Feedback submitted successfully'),
-                        ),
-                      );
+                      final userEmail = booking.userEmail.trim().isNotEmpty
+                          ? booking.userEmail.trim()
+                          : currentUser?.email ?? '';
+
+                      final feedbackId = bookingDocId;
+
+                      final batch = FirebaseFirestore.instance.batch();
+
+                      final feedbackRef = FirebaseFirestore.instance
+                          .collection('feedbacks')
+                          .doc(feedbackId);
+
+                      final bookingRef = FirebaseFirestore.instance
+                          .collection('bookings')
+                          .doc(bookingDocId);
+
+                      batch.set(feedbackRef, {
+                        'feedback_id': feedbackId,
+                        'booking_id': bookingDocId,
+                        'user_id': currentUser?.uid ?? booking.userId,
+                        'user_name': userName,
+                        'user_email': userEmail,
+                        'package_id': booking.packageId,
+                        'package_title': booking.packageTitle,
+                        'package_location': booking.packageLocation,
+                        'rating': selectedRating,
+                        'feedback': feedbackText,
+                        'status': 'pending',
+                        'is_visible': false,
+                        'created_at': FieldValue.serverTimestamp(),
+                        'updated_at': FieldValue.serverTimestamp(),
+                      });
+
+                      batch.update(bookingRef, {
+                        'has_feedback': true,
+                        'feedback_id': feedbackId,
+                        'feedback_rating': selectedRating,
+                        'feedback_status': 'pending',
+                      });
+
+                      await batch.commit();
+
+                      if (context.mounted) {
+                        Navigator.pop(dialogContext);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Feedback submitted successfully. Waiting for admin approval.',
+                            ),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to submit feedback: $e'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
                     }
                   },
                   child: const Text('Submit'),
@@ -292,7 +375,6 @@ class BookingHistoryScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-
                       if (canGiveFeedback) ...[
                         const SizedBox(height: 14),
                         SizedBox(
@@ -320,8 +402,8 @@ class BookingHistoryScreen extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor: AppColors.textSecondary
-                                  .withOpacity(0.3),
+                              disabledBackgroundColor:
+                                  AppColors.textSecondary.withOpacity(0.3),
                               disabledForegroundColor: AppColors.textSecondary,
                             ),
                           ),

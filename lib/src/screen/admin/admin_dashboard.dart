@@ -43,8 +43,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   FutureBuilder<Map<String, int>>(
                     future: _adminService.getDashboardStats(),
                     builder: (context, snapshot) {
-                      final stats =
-                          snapshot.data ??
+                      final stats = snapshot.data ??
                           {
                             'packages': 0,
                             'bookings': 0,
@@ -100,7 +99,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               ],
                               _DashboardStatCard(
                                 title: "Reviews",
-                                count: 0, // Placeholder
+                                count: stats['feedbacks'] ?? 0,
                                 icon: Icons.reviews_outlined,
                                 color: AppColors.success,
                                 isLoading: isLoading,
@@ -165,8 +164,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       if (AppConfig.isVoucherAdminEnable)
                         _ActionCard(
-                          title: "Vouchers",
-                          icon: Icons.local_offer_outlined,
+                          title: "Points & Voucher",
+                          icon: Icons.card_giftcard_outlined,
                           color: AppColors.info,
                           onTap: () {
                             Navigator.pushNamed(
@@ -176,16 +175,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           },
                         ),
                       _ActionCard(
-                        title: "Reviews",
+                        title: "Review & Feedback",
                         icon: Icons.reviews_outlined,
                         color: AppColors.success,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Coming soon!"),
-                              backgroundColor: AppColors.info,
-                            ),
-                          );
+                          Navigator.pushNamed(
+                            context,
+                            "/adminReviewsFeedback",
+                          ).then((_) => setState(() {}));
                         },
                       ),
                       _ActionCard(

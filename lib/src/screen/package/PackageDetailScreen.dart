@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
@@ -7,6 +8,15 @@ class PackageDetailScreen extends StatelessWidget {
   final Package package;
 
   const PackageDetailScreen({super.key, required this.package});
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _approvedReviewsStream() {
+    return FirebaseFirestore.instance
+        .collection('feedbacks')
+        .where('package_id', isEqualTo: package.packageId)
+        .where('status', isEqualTo: 'approved')
+        .where('is_visible', isEqualTo: true)
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +46,9 @@ class PackageDetailScreen extends StatelessWidget {
                   _buildSectionTitle('Location & Schedule'),
                   const SizedBox(height: 16),
                   _buildScheduleCard(),
-                  const SizedBox(height: 120), // Bottom bar padding
+                  const SizedBox(height: 32),
+                  _buildApprovedReviewsSection(),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -67,7 +79,22 @@ class PackageDetailScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             package.image.isNotEmpty
-                ? Image.network(package.image.first, fit: BoxFit.cover)
+                ? Image.network(
+                    package.image.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.border,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: AppColors.textLight,
+                            size: 50,
+                          ),
+                        ),
+                      );
+                    },
+                  )
                 : Container(color: AppColors.border),
             Container(
               decoration: const BoxDecoration(
@@ -85,56 +112,91 @@ class PackageDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTitleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _approvedReviewsStream(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final reviewCount = docs.length;
+
+        double averageRating = 0;
+
+        if (reviewCount > 0) {
+          final totalRating = docs.fold<int>(0, (sum, doc) {
+            final data = doc.data();
+            return sum + _getRating(data['rating']);
+          });
+
+          averageRating = totalRating / reviewCount;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Top Choice',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Top Choice',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
+                const Spacer(),
+                const Icon(Icons.star, color: AppColors.warning, size: 20),
+                Text(
+                  reviewCount == 0
+                      ? ' New '
+                      : ' ${averageRating.toStringAsFixed(1)} ',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  reviewCount == 0
+                      ? '(No reviews yet)'
+                      : '($reviewCount reviews)',
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              package.title,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
               ),
             ),
-            const Spacer(),
-            const Icon(Icons.star, color: AppColors.warning, size: 20),
-            const Text(' 4.8 ', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text(
-              '(120+ reviews)',
-              style: TextStyle(color: AppColors.textLight, fontSize: 12),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: AppColors.error, size: 18),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    package.location,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          package.title,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(Icons.location_on, color: AppColors.error, size: 18),
-            const SizedBox(width: 4),
-            Text(
-              package.location,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -165,7 +227,10 @@ class PackageDetailScreen extends StatelessWidget {
           value,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
-        Text(label, style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+        ),
       ],
     );
   }
@@ -184,7 +249,7 @@ class PackageDetailScreen extends StatelessWidget {
   Widget _buildDescription() {
     return Text(
       package.description,
-      style: TextStyle(
+      style: const TextStyle(
         color: AppColors.textSecondary,
         height: 1.6,
         fontSize: 15,
@@ -258,13 +323,252 @@ class PackageDetailScreen extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: AppColors.textSecondary),
         const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: AppColors.textLight, fontSize: 14)),
-        const Spacer(),
         Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          label,
+          style: const TextStyle(color: AppColors.textLight, fontSize: 14),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildApprovedReviewsSection() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _approvedReviewsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Text(
+              'Unable to load reviews: ${snapshot.error}',
+              style: const TextStyle(color: AppColors.error),
+            ),
+          );
+        }
+
+        final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+          snapshot.data?.docs ?? [],
+        );
+
+        docs.sort((a, b) {
+          final aTime = _getTimestamp(a.data());
+          final bTime = _getTimestamp(b.data());
+
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+
+          return bTime.compareTo(aTime);
+        });
+
+        if (docs.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle('Reviews & Feedback'),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(
+                      Icons.reviews_outlined,
+                      color: AppColors.textLight,
+                      size: 44,
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'No approved reviews yet',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Reviews will appear here after admin approval.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        final totalRating = docs.fold<int>(0, (sum, doc) {
+          return sum + _getRating(doc.data()['rating']);
+        });
+
+        final averageRating = totalRating / docs.length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle('Reviews & Feedback'),
+            const SizedBox(height: 12),
+            _buildReviewSummary(
+              averageRating: averageRating,
+              reviewCount: docs.length,
+            ),
+            const SizedBox(height: 16),
+            ...docs.map((doc) => _buildReviewCard(doc.data())),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewSummary({
+    required double averageRating,
+    required int reviewCount,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.star_rounded,
+            color: AppColors.warning,
+            size: 40,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            averageRating.toStringAsFixed(1),
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Based on $reviewCount approved review${reviewCount == 1 ? '' : 's'}',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> data) {
+    final userName = _getText(
+      data,
+      ['user_name', 'userName', 'name', 'email'],
+      'JomTravel User',
+    );
+
+    final feedback = _getText(
+      data,
+      ['feedback', 'comment', 'review'],
+      'No feedback provided.',
+    );
+
+    final rating = _getRating(data['rating']);
+    final date = _formatDate(_getTimestamp(data));
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: AppColors.primaryLight,
+                child: Icon(
+                  Icons.person,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  userName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                date,
+                style: const TextStyle(
+                  color: AppColors.textLight,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: List.generate(5, (index) {
+              return Icon(
+                index < rating ? Icons.star : Icons.star_border,
+                color: AppColors.warning,
+                size: 18,
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            feedback,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -338,5 +642,56 @@ class PackageDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  int _getRating(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value) ?? 0;
+
+    return 0;
+  }
+
+  Timestamp? _getTimestamp(Map<String, dynamic> data) {
+    final possibleKeys = [
+      'created_at',
+      'createdAt',
+      'timestamp',
+      'date',
+    ];
+
+    for (final key in possibleKeys) {
+      final value = data[key];
+
+      if (value is Timestamp) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+
+  String _formatDate(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+
+    final date = timestamp.toDate();
+
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getText(
+    Map<String, dynamic> data,
+    List<String> keys,
+    String defaultValue,
+  ) {
+    for (final key in keys) {
+      final value = data[key];
+
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+
+    return defaultValue;
   }
 }

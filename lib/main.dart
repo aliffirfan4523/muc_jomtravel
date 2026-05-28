@@ -12,6 +12,7 @@ import 'package:muc_jomtravel/src/screen/booking/booking_succesful.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_navigation_view.dart';
 import 'package:muc_jomtravel/src/screen/homepage/user_profile.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
+import 'package:muc_jomtravel/src/screen/admin/admin_reviews_feedback.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,7 @@ class MainApp extends StatelessWidget {
         "/adminViewPackages": (_) => AdminViewPackages(),
         "/adminViewUserData": (_) => AdminViewUserData(),
         "/adminViewVouchers": (_) => AdminVoucherScreen(),
+        "/adminReviewsFeedback": (_) => const AdminReviewsFeedbackScreen(),
         "/points_reward_page": (_) => UserNavigationView(selectedIndex: 2),
         "/userDashboard": (_) => UserNavigationView(selectedIndex: 0),
       },
