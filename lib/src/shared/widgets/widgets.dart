@@ -5,3 +5,5 @@ export 'sign_out_button.dart';
 export 'points_activity_card.dart';
 export 'login_register_button.dart';
 export 'intro_page.dart';
+export 'glass_container.dart';
+export 'ticket_pass_card.dart';

@@ -32,13 +32,18 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.cardBackground,
+        foregroundColor: AppColors.textPrimary,
         title: const Text(
-          'Select Voucher',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Select Promo Voucher',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.4,
+          ),
         ),
         elevation: 0,
+        centerTitle: true,
       ),
       body: StreamBuilder<List<Voucher>>(
         stream: _voucherService.getUserVouchersStream(uid),
@@ -51,46 +56,71 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
 
           final vouchers =
               snapshot.data?.where((v) => !v.redeemed && !v.expired).toList() ??
-              [];
+                  [];
 
           return Column(
             children: [
+              // Code Entry Container
               Container(
-                color: AppColors.primary,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                color: AppColors.cardBackground,
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.surfaceSubtle,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.borderLight),
                   ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 14,
                     vertical: 4,
                   ),
                   child: Row(
                     children: [
                       const Icon(
-                        Icons.confirmation_num_outlined,
+                        Icons.discount_rounded,
                         color: AppColors.primary,
+                        size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: _voucherCodeController,
+                          textCapitalization: TextCapitalization.characters,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
                           decoration: const InputDecoration(
-                            hintText: 'Enter voucher code',
-                            hintStyle: TextStyle(color: AppColors.textLight),
+                            hintText: 'Enter voucher code (e.g. JOM10)',
+                            hintStyle: TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 13,
+                              fontWeight: FontWeight.normal,
+                            ),
                             border: InputBorder.none,
                           ),
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          final code = _voucherCodeController.text.trim();
+                          if (code.isNotEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Promo code "$code" applied!'),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
                         child: const Text(
                           'Apply',
                           style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -98,46 +128,104 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                   ),
                 ),
               ),
+
+              // Vouchers List
               Expanded(
                 child: vouchers.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No vouchers available',
-                          style: TextStyle(color: AppColors.textSecondary),
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.local_activity_outlined,
+                              size: 54,
+                              color: AppColors.textLight,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No vouchers in your wallet yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Redeem exciting vouchers in Rewards Club!',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(18),
                         itemCount: vouchers.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final voucher = vouchers[index];
-                          final isSelected =
-                              _tempSelectedVoucher?.voucherId ==
+                          final isSelected = _tempSelectedVoucher?.voucherId ==
                               voucher.voucherId;
+                          final meetsMinSpend =
+                              widget.currentTotal >= voucher.minimumSpend;
 
                           return InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () =>
-                                setState(() => _tempSelectedVoucher = voucher),
-                            child: VoucherCard(
-                              selected: isSelected,
-                              color: AppColors.primary,
-                              voucher: voucher,
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              setState(() => _tempSelectedVoucher = voucher);
+                            },
+                            child: Stack(
+                              children: [
+                                VoucherCard(
+                                  selected: isSelected,
+                                  color: AppColors.primary,
+                                  voucher: voucher,
+                                ),
+                                if (!meetsMinSpend)
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 12,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.error
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Min. spend RM${voucher.minimumSpend.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.error,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           );
                         },
                       ),
               ),
+
+              // Bottom Confirmation Dock
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.cardBackground,
-                  boxShadow: [
+                  border: const Border(
+                    top: BorderSide(color: AppColors.borderLight, width: 1.2),
+                  ),
+                  boxShadow: const [
                     BoxShadow(
                       color: AppColors.shadow,
-                      blurRadius: 10,
-                      offset: Offset(0, -5),
+                      blurRadius: 12,
+                      offset: Offset(0, -4),
                     ),
                   ],
                 ),
@@ -147,10 +235,12 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                     onPressed: _tempSelectedVoucher == null
                         ? null
                         : () {
-                            if (_tempSelectedVoucher!.minimumSpend > widget.currentTotal) {
+                            if (_tempSelectedVoucher!.minimumSpend >
+                                widget.currentTotal) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Minimum spend of RM${_tempSelectedVoucher!.minimumSpend} required.'),
+                                  content: Text(
+                                      'Minimum spend of RM${_tempSelectedVoucher!.minimumSpend.toStringAsFixed(0)} required for this voucher.'),
                                   backgroundColor: AppColors.error,
                                 ),
                               );
@@ -161,19 +251,19 @@ class _SelectVoucherPageState extends State<SelectVoucherPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.border,
+                      disabledBackgroundColor: AppColors.borderLight,
                       disabledForegroundColor: AppColors.textLight,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                       elevation: 0,
                     ),
                     child: const Text(
-                      'Confirm Voucher',
+                      'Confirm Voucher Selection',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
                       ),
                     ),
                   ),

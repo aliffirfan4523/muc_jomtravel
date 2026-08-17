@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
 
 class PointsActivityCard extends StatelessWidget {
   final bool isEarn;
@@ -21,34 +22,27 @@ class PointsActivityCard extends StatelessWidget {
     final date = timestamp.toDate();
     final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(date);
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isEarn ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+              color: isEarn
+                  ? AppColors.success.withValues(alpha: 0.1)
+                  : AppColors.error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isEarn ? Icons.trending_up : Icons.trending_down,
-              color: isEarn ? Colors.green : Colors.red,
-              size: 20,
+              isEarn
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
+              color: isEarn ? AppColors.success : AppColors.error,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,37 +50,44 @@ class PointsActivityCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   formattedDate,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          Text(
-            "${isEarn ? '+' : '-'}$amount",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isEarn ? Colors.green : Colors.red,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            "pts",
-            style: TextStyle(
-              fontSize: 12,
-              color: isEarn ? Colors.green[300] : Colors.red[300],
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${isEarn ? '+' : '-'}$amount',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: isEarn ? AppColors.success : AppColors.error,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Text(
+                'pts',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isEarn ? AppColors.success : AppColors.error,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
+import 'package:muc_jomtravel/src/shared/widgets/ticket_pass_card.dart';
 
 class BookingInfoScreen extends StatefulWidget {
   const BookingInfoScreen({super.key});
@@ -15,6 +16,76 @@ class BookingInfoScreen extends StatefulWidget {
 class _BookingInfoScreenState extends State<BookingInfoScreen> {
   final BookingService _bookingService = BookingService();
 
+  void _confirmCancel(BuildContext context, Booking booking) {
+    final bId = booking.bookingId ?? '';
+    if (bId.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Cancel Booking?',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: -0.3,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to cancel this reservation? Any applied vouchers will be returned to your wallet.',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Keep Trip',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await _bookingService.cancelBooking(bId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Reservation successfully cancelled.'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Confirm Cancel',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bookingId = ModalRoute.of(context)!.settings.arguments as String;
@@ -23,12 +94,17 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Booking Details',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Digital Boarding Pass',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.4,
+          ),
         ),
         backgroundColor: AppColors.cardBackground,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        centerTitle: true,
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -37,7 +113,9 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -47,18 +125,277 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           final booking = Booking.fromMap(data, bookingId);
 
-          // Lazy cancellation check
           _bookingService.checkExpiredPayment(booking);
 
+          final isConfirmed = booking.status.toLowerCase() == 'confirmed';
+          final bId = booking.bookingId ?? bookingId;
+
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 40),
             child: Column(
               children: [
-                _buildTicket(booking),
+                // Apple Wallet Boarding Pass Card
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isConfirmed
+                            ? AppColors.primary.withValues(alpha: 0.15)
+                            : AppColors.shadowMedium,
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: ClipPath(
+                    clipper: TicketPassClipper(
+                      punchRadius: 14,
+                      punchPositionFraction: 0.62,
+                    ),
+                    child: Container(
+                      color: AppColors.cardBackground,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Top Pass Header
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                            decoration: BoxDecoration(
+                              gradient: isConfirmed
+                                  ? AppColors.heroGradient
+                                  : AppColors.darkCardGradient,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'JOMTRAVEL BOARDING PASS',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '#${bId.toUpperCase()}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    booking.status.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Package & Trip Details
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  booking.packageTitle,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on_rounded,
+                                        size: 15, color: AppColors.coral),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        booking.packageLocation,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Grid details
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildInfoColumn(
+                                      'DEPARTURE DATE',
+                                      DateFormat('EEE, d MMM yyyy')
+                                          .format(booking.visitDate),
+                                    ),
+                                    _buildInfoColumn(
+                                      'TRAVELERS',
+                                      '${booking.adults} Adults${booking.children > 0 ? ', ${booking.children} Ch' : ''}',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildInfoColumn(
+                                      'LEAD TRAVELER',
+                                      booking.userName,
+                                    ),
+                                    _buildInfoColumn(
+                                      'TOTAL PAID',
+                                      'RM ${booking.totalPrice.toStringAsFixed(2)}',
+                                      highlight: true,
+                                    ),
+                                  ],
+                                ),
+                                if (booking.addTourGuide ||
+                                    booking.addMeal ||
+                                    booking.addTransport) ...[
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'INCLUDED ADD-ONS',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textLight,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      if (booking.addTourGuide)
+                                        _addonChip('Tour Guide'),
+                                      if (booking.addMeal)
+                                        _addonChip('Meal Set'),
+                                      if (booking.addTransport)
+                                        _addonChip('Hotel Shuttle'),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          // Perforated Divider
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: SizedBox(
+                              height: 1,
+                              child: CustomPaint(
+                                painter: DashedLinePainter(
+                                  color: AppColors.border,
+                                  dashWidth: 6,
+                                  dashSpace: 4,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Bottom Stub: QR Code & Check-in instructions
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                            child: Column(
+                              children: [
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                        width: 1.2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.qr_code_2_rounded,
+                                          size: 140,
+                                          color: isConfirmed
+                                              ? AppColors.textPrimary
+                                              : AppColors.textLight,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'Scan at departure terminal',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
+
+                // Cancel Button (if applicable)
                 if (booking.status.toLowerCase() == 'confirmed' ||
                     booking.status.toLowerCase() == 'pending')
-                  _buildCancelAction(context, booking),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _confirmCancel(context, booking),
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: const Text('Cancel Reservation'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(
+                            color: AppColors.error, width: 1.2),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -67,357 +404,50 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
     );
   }
 
-  Widget _buildCancelAction(BuildContext context, Booking booking) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _confirmCancel(context, booking),
-        icon: const Icon(Icons.cancel_outlined),
-        label: const Text('Cancel My Booking'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.error,
-          side: const BorderSide(color: AppColors.error),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTicket(Booking booking) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 15,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildStatusHeader(booking),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionHeader('TRAVEL PACKAGE'),
-                const SizedBox(height: 12),
-                Text(
-                  booking.packageTitle,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      booking.packageLocation,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildInfoColumn(
-                      'VISIT DATE',
-                      DateFormat('MMM d, yyyy').format(booking.visitDate),
-                    ),
-                    _buildInfoColumn(
-                      'BOOKING ID',
-                      '#${booking.bookingId!.substring(0, 8).toUpperCase()}',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildInfoColumn(
-                      'GUESTS',
-                      '${booking.adults} Adults, ${booking.children} Kids',
-                    ),
-                    _buildInfoColumn(
-                      'PAYMENT',
-                      booking.paymentStatus.toUpperCase(),
-                      color: booking.paymentStatus == 'paid' ? AppColors.success : AppColors.error,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          _buildDashedDivider(),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                _buildPriceRow('Subtotal', booking.originalPrice),
-                if (booking.discountAmount > 0)
-                  _buildPriceRow(
-                    'Discount',
-                    -booking.discountAmount,
-                    isDiscount: true,
-                  ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total Price',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'RM ${booking.totalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                if (booking.status == 'confirmed' || booking.paymentStatus == 'paid') _buildQRCodePlaceholder(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusHeader(Booking booking) {
-    Color color;
-    IconData icon;
-    String text = booking.status.toUpperCase();
-
-    switch (booking.status.toLowerCase()) {
-      case 'confirmed':
-        color = AppColors.success;
-        icon = Icons.check_circle_rounded;
-        break;
-      case 'pending':
-        color = AppColors.warning;
-        icon = Icons.hourglass_empty_rounded;
-        break;
-      case 'cancelled':
-        color = AppColors.error;
-        icon = Icons.cancel_rounded;
-        break;
-      default:
-        color = AppColors.textLight;
-        icon = Icons.help_outline;
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: AppColors.primary,
-        fontSize: 11,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 1.5,
-      ),
-    );
-  }
-
-  Widget _buildInfoColumn(String label, String value, {Color? color}) {
+  Widget _buildInfoColumn(String label, String value,
+      {bool highlight = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
             color: AppColors.textLight,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
+            letterSpacing: 0.6,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: color ?? AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: highlight ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPriceRow(
-    String label,
-    double amount, {
-    bool isDiscount = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-          Text(
-            '${amount < 0 ? '-' : ''}RM ${amount.abs().toStringAsFixed(2)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: isDiscount ? AppColors.success : AppColors.textPrimary,
-            ),
-          ),
-        ],
+  Widget _addonChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.2),
+        ),
       ),
-    );
-  }
-
-  Widget _buildDashedDivider() {
-    return Row(
-      children: [
-        Transform.translate(
-          offset: const Offset(-10, 0),
-          child: const CircleAvatar(
-            radius: 10,
-            backgroundColor: AppColors.background,
-          ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
         ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Flex(
-                  direction: Axis.horizontal,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(
-                    (constraints.constrainWidth() / 10).floor(),
-                    (index) => SizedBox(
-                      width: 5,
-                      height: 1,
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(color: AppColors.border),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(10, 0),
-          child: const CircleAvatar(
-            radius: 10,
-            backgroundColor: AppColors.background,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQRCodePlaceholder() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.qr_code_2_rounded,
-            size: 100,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Show this at the entrance',
-          style: TextStyle(color: AppColors.textLight, fontSize: 12),
-        ),
-      ],
-    );
-  }
-
-  void _confirmCancel(BuildContext context, Booking booking) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Cancel Booking?'),
-        content: const Text(
-          'This action will refund your points and invalidate the voucher used. Are you sure?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Keep Booking', style: TextStyle(color: AppColors.primary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _bookingService.cancelBooking(booking.bookingId!);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Booking cancelled successfully'),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Yes, Cancel'),
-          ),
-        ],
       ),
     );
   }

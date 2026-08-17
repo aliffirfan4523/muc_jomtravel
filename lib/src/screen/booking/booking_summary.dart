@@ -1,11 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:muc_jomtravel/src/model/models.dart';
 import 'package:muc_jomtravel/src/service/services.dart';
 import 'package:muc_jomtravel/src/shared/theme/app_colors.dart';
-
-import '../../model/voucher.dart';
 
 class PriceSummaryScreen extends StatefulWidget {
   final Package package;
@@ -18,8 +16,8 @@ class PriceSummaryScreen extends StatefulWidget {
   final String name;
   final String phone;
   final String email;
-  final Voucher? voucher;
   final String bookingSessionId;
+  final Voucher? voucher;
 
   const PriceSummaryScreen({
     super.key,
@@ -43,7 +41,23 @@ class PriceSummaryScreen extends StatefulWidget {
 
 class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
   bool _isConfirming = false;
+  int _userPoints = 0;
   final BookingService _bookingService = BookingService();
+  final VoucherService _voucherService = VoucherService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserPoints();
+  }
+
+  Future<void> _loadUserPoints() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final pts = await _voucherService.getUserPoints(user.uid);
+      if (mounted) setState(() => _userPoints = pts);
+    }
+  }
 
   Future<void> _confirmBooking(
     double originalPrice,
@@ -58,7 +72,7 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please login to book'),
+            content: Text('Please login to complete booking'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -68,7 +82,11 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
     }
 
     try {
-      // Create or Update the booking using the Session ID
+      final pointsEarned = _voucherService.calculatePointsEarned(
+        originalPrice - discountAmount,
+        userPoints: _userPoints,
+      );
+
       await _bookingService.createBooking(
         bookingId: widget.bookingSessionId,
         package: widget.package,
@@ -86,9 +104,7 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
         discountAmount: discountAmount,
         voucherId: widget.voucher?.voucherId ?? '',
         voucherCode: widget.voucher?.code ?? '',
-        pointsEarned: VoucherService().calculatePointsEarned(
-          originalPrice - discountAmount,
-        ),
+        pointsEarned: pointsEarned,
       );
 
       if (mounted) {
@@ -98,7 +114,7 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error booking: $e'),
+            content: Text('Error completing booking: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -110,132 +126,206 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double adultTotal = widget.adults * widget.package.priceAdult;
-    double childrenTotal = widget.children * widget.package.priceChild;
-    double mealTotal = widget.addMeal ? (widget.adults + widget.children) * 30 : 0;
-    double tourGuideTotal = widget.addTourGuide ? 50 : 0;
-    double transportTotal = widget.addTransport ? 100 : 0;
-    double grandTotal =
-        adultTotal +
-        childrenTotal +
-        mealTotal +
-        tourGuideTotal +
-        transportTotal;
-    double discountedPrice = grandTotal - (widget.voucher?.discountAmount ?? 0);
+    final double adultTotal = widget.adults * widget.package.priceAdult;
+    final double childrenTotal = widget.children * widget.package.priceChild;
+    final double packageBase = adultTotal + childrenTotal;
+
+    final bool isTourGuideFree =
+        _voucherService.isTourGuideFreeForTier(_userPoints);
+    final bool isTransportFree =
+        _voucherService.isTransportFreeForTier(_userPoints);
+    final double tierDiscountRate =
+        _voucherService.getTierDiscountRate(_userPoints);
+    final double tierDiscountAmount = packageBase * tierDiscountRate;
+
+    final double mealTotal =
+        widget.addMeal ? (widget.adults + widget.children) * 30 : 0;
+    final double tourGuideTotal =
+        (widget.addTourGuide && !isTourGuideFree) ? 50 : 0;
+    final double transportTotal =
+        (widget.addTransport && !isTransportFree) ? 100 : 0;
+
+    final double grandTotal =
+        packageBase + mealTotal + tourGuideTotal + transportTotal;
+    final double voucherDiscount = widget.voucher?.discountAmount ?? 0;
+    final double totalDiscount = tierDiscountAmount + voucherDiscount;
+    final double finalPayable = grandTotal - totalDiscount;
+
+    final int pointsEarned = _voucherService.calculatePointsEarned(
+      finalPayable < 0 ? 0 : finalPayable,
+      userPoints: _userPoints,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Price Summary',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Reservation Summary',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.4,
+          ),
         ),
         backgroundColor: AppColors.cardBackground,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 8),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 120),
         child: Column(
           children: [
-            /// Package Card
+            // Package Summary Card
             _infoCard(
               title: widget.package.title,
+              subtitle: widget.package.location,
               children: [
                 _row(
-                  'Date',
-                  '${widget.visitDate.day}/${widget.visitDate.month}/${widget.visitDate.year}',
+                  'Visit Date',
+                  DateFormat('EEE, d MMMM yyyy').format(widget.visitDate),
                 ),
-                _row('Adults (${widget.adults})', 'RM ${adultTotal.toStringAsFixed(2)}'),
                 _row(
-                  'Children (${widget.children})',
-                  'RM ${childrenTotal.toStringAsFixed(2)}',
+                  'Adults (${widget.adults})',
+                  'RM ${adultTotal.toStringAsFixed(2)}',
                 ),
+                if (widget.children > 0)
+                  _row(
+                    'Children (${widget.children})',
+                    'RM ${childrenTotal.toStringAsFixed(2)}',
+                  ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
 
-            /// Contact Info Card
+            // Lead Traveler Card
             _infoCard(
-              title: 'Contact Details',
+              title: 'Lead Traveler',
               children: [
-                _row('Name', widget.name),
+                _row('Full Name', widget.name),
                 _row('Phone', widget.phone),
                 _row('Email', widget.email),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
 
-            /// Add-ons Card
-            _infoCard(
-              title: 'Add-ons',
-              children: [
-                _row('Tour Guide', widget.addTourGuide ? 'RM 50.00' : 'RM 0.00'),
-                _row(
-                  'Meal',
-                  widget.addMeal ? 'RM ${mealTotal.toStringAsFixed(2)}' : 'RM 0.00',
-                ),
-                _row('Transport', widget.addTransport ? 'RM 100.00' : 'RM 0.00'),
-              ],
-            ),
+            // Enhancements Card
+            if (widget.addTourGuide || widget.addMeal || widget.addTransport) ...[
+              _infoCard(
+                title: 'Selected Add-ons',
+                children: [
+                  if (widget.addTourGuide)
+                    _row(
+                      'Licensed Tour Guide',
+                      isTourGuideFree ? 'RM 0.00 (Tier Perk)' : 'RM 50.00',
+                    ),
+                  if (widget.addMeal)
+                    _row(
+                      'Gourmet Meal Set (${widget.adults + widget.children} pax)',
+                      'RM ${mealTotal.toStringAsFixed(2)}',
+                    ),
+                  if (widget.addTransport)
+                    _row(
+                      'Hotel Transfer & Shuttle',
+                      isTransportFree ? 'RM 0.00 (Platinum Perk)' : 'RM 100.00',
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
 
-            const SizedBox(height: 8),
-
-            /// Total Breakdown
+            // Itemized Receipt / Total Breakdown Card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: AppColors.borderLight, width: 1.2),
                 boxShadow: const [
                   BoxShadow(
                     color: AppColors.shadow,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+                    blurRadius: 14,
+                    offset: Offset(0, 5),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  _priceSummaryRow('Original Price', grandTotal, isMain: false),
-                  const SizedBox(height: 8),
+                  _priceSummaryRow('Original Subtotal', grandTotal,
+                      isMain: false),
+                  if (tierDiscountAmount > 0) ...[
+                    const SizedBox(height: 8),
+                    _priceSummaryRow(
+                      '${_voucherService.getTierName(_userPoints)} Discount (${(tierDiscountRate * 100).toInt()}%)',
+                      -tierDiscountAmount,
+                      isMain: false,
+                      isDiscount: true,
+                    ),
+                  ],
+                  if (widget.voucher != null) ...[
+                    const SizedBox(height: 8),
+                    _priceSummaryRow(
+                      'Promo Voucher (${widget.voucher!.code})',
+                      -(widget.voucher!.discountAmount),
+                      isMain: false,
+                      isDiscount: true,
+                    ),
+                  ],
+                  const Divider(height: 28, color: AppColors.divider),
                   _priceSummaryRow(
-                    'Discount Amount',
-                    -(widget.voucher?.discountAmount ?? 0),
-                    isMain: false,
-                    isDiscount: true,
-                  ),
-                  const Divider(height: 32, color: AppColors.divider),
-                  _priceSummaryRow(
-                    'Total Price',
-                    discountedPrice,
+                    'Total Payable',
+                    finalPayable < 0 ? 0 : finalPayable,
                     isMain: true,
                   ),
                   const SizedBox(height: 16),
+
+                  // Points Reward Banner with Tier Multiplier Indicator
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Points to be earned',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+                        Row(
+                          children: [
+                            const Icon(Icons.workspace_premium_rounded,
+                                color: AppColors.success, size: 18),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Reward Points Earned',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                if (_voucherService.getTierMultiplier(_userPoints) > 1.0)
+                                  Text(
+                                    '${_voucherService.getTierMultiplier(_userPoints)}x Tier Multiplier Active',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                         Text(
-                          '+${VoucherService().calculatePointsEarned(discountedPrice)} pts',
+                          '+$pointsEarned pts',
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
                             color: AppColors.success,
                           ),
                         ),
@@ -245,84 +335,94 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            /// Confirm Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isConfirming 
-                  ? null 
-                  : () => _confirmBooking(
-                    grandTotal,
-                    widget.voucher?.discountAmount ?? 0,
-                  ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isConfirming
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Confirm Booking',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-              ),
-            ),
           ],
         ),
       ),
+      bottomSheet: _buildBottomConfirmDock(grandTotal, totalDiscount),
     );
   }
 
-  Widget _infoCard({required String title, required List<Widget> children}) {
+  Widget _infoCard({
+    required String title,
+    String? subtitle,
+    required List<Widget> children,
+  }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.borderLight, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.divider),
+          const SizedBox(height: 10),
           ...children,
         ],
       ),
     );
   }
 
-  Widget _row(String left, String right) {
+  Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(left, style: const TextStyle(color: AppColors.textSecondary)),
           Text(
-            right,
+            label,
             style: const TextStyle(
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -331,34 +431,121 @@ class _PriceSummaryScreenState extends State<PriceSummaryScreen> {
     );
   }
 
-  Widget _priceSummaryRow(
-    String label,
-    double amount, {
-    required bool isMain,
-    bool isDiscount = false,
-  }) {
+  Widget _priceSummaryRow(String label, double amount,
+      {bool isMain = false, bool isDiscount = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: isMain ? 18 : 14,
-            fontWeight: isMain ? FontWeight.bold : FontWeight.normal,
+            fontSize: isMain ? 15 : 13,
+            fontWeight: isMain ? FontWeight.w800 : FontWeight.w600,
             color: isMain ? AppColors.textPrimary : AppColors.textSecondary,
           ),
         ),
         Text(
-          '${amount < 0 ? '-' : ''}RM ${amount.abs().toStringAsFixed(2)}',
+          'RM ${amount.abs().toStringAsFixed(2)}',
           style: TextStyle(
-            fontSize: isMain ? 22 : 14,
-            fontWeight: FontWeight.bold,
+            fontSize: isMain ? 18 : 13,
+            fontWeight: isMain ? FontWeight.w900 : FontWeight.w700,
             color: isDiscount
                 ? AppColors.success
-                : (isMain ? AppColors.primary : AppColors.textPrimary),
+                : isMain
+                    ? AppColors.primary
+                    : AppColors.textPrimary,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBottomConfirmDock(double grandTotal, double totalDiscount) {
+    final payable = grandTotal - totalDiscount;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        border: const Border(
+          top: BorderSide(color: AppColors.border, width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'FINAL AMOUNT',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textLight,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              Text(
+                'RM ${(payable < 0 ? 0.0 : payable).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _isConfirming
+                  ? null
+                  : () => _confirmBooking(grandTotal, totalDiscount),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: _isConfirming
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Confirm Reservation',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

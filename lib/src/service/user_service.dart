@@ -6,10 +6,12 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<AppUser?> getUserData(String userId) async {
-    final doc = await _db.collection('users').doc(userId).get();
+    final doc = await _db
+        .collection('users')
+        .doc(userId)
+        .get(const GetOptions(source: Source.serverAndCache));
 
     if (!doc.exists) return null;
-    //print(doc.data());
     return AppUser.fromMap(doc.data()!);
   }
 
@@ -17,15 +19,14 @@ class UserService {
     final snapshot = await _db
         .collection('packages')
         .where('is_active', isEqualTo: true)
-        .get();
-    final packages = snapshot.docs.map((doc) => Package.fromMap(doc.data())).toList();
+        .get(const GetOptions(source: Source.serverAndCache));
+    final packages =
+        snapshot.docs.map((doc) => Package.fromMap(doc.data())).toList();
     packages.sort(_comparePackagesByPopularity);
     return packages;
   }
 
   Future<List<Package>> searchPackages(String query) async {
-    // Fetch all active packages first (for robust client-side filtering)
-    // Firestore lacks native case-insensitive substrings search
     final allPackages = await getPackages();
 
     if (query.isEmpty) {
@@ -57,12 +58,6 @@ class UserService {
 
   Future<String> returnPendingProfile() async {
     final prefs = await SharedPreferences.getInstance();
-
-    final name = prefs.getString('pending_name');
-
-    // 🔴 Clear immediately after reading
-    await prefs.remove('pending_name');
-
-    return name ?? '';
+    return prefs.getString('pending_name') ?? '';
   }
 }

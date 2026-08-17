@@ -6,8 +6,53 @@ class VoucherService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth auth = FirebaseAuth.instance;
 
-  int calculatePointsEarned(double totalPrice) {
-    return (totalPrice / 10).floor();
+  String getTierName(int points) {
+    if (points >= 5000) return 'Platinum Voyager';
+    if (points >= 2000) return 'Gold Explorer';
+    if (points >= 500) return 'Silver Nomad';
+    return 'Bronze Traveler';
+  }
+
+  double getTierMultiplier(int points) {
+    if (points >= 5000) return 2.0;
+    if (points >= 2000) return 1.5;
+    if (points >= 500) return 1.2;
+    return 1.0;
+  }
+
+  double getTierDiscountRate(int points) {
+    if (points >= 5000) return 0.15; // 15% discount for Platinum
+    if (points >= 2000) return 0.10; // 10% discount for Gold
+    if (points >= 500) return 0.05;  // 5% discount for Silver
+    return 0.0;
+  }
+
+  bool isTourGuideFreeForTier(int points) {
+    return points >= 2000; // Gold and Platinum get complimentary tour guide
+  }
+
+  bool isTransportFreeForTier(int points) {
+    return points >= 5000; // Platinum gets complimentary hotel shuttle transport
+  }
+
+  double calculateTierDiscount(double basePrice, int points) {
+    return basePrice * getTierDiscountRate(points);
+  }
+
+  int calculatePointsEarned(double totalPrice, {int userPoints = 0}) {
+    final base = (totalPrice / 10).floor();
+    final multiplier = getTierMultiplier(userPoints);
+    return (base * multiplier).round();
+  }
+
+  Future<int> getUserPoints(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return ((doc.data()?['total_points'] ?? 0) as num).toInt();
+      }
+    } catch (_) {}
+    return 0;
   }
 
   Future<void> updateUserPoints(
@@ -94,8 +139,7 @@ class VoucherService {
           .get();
 
       return snapshot.docs.map((doc) => Voucher.fromMap(doc.data())).toList();
-    } catch (e) {
-      print("Error fetching user vouchers: $e");
+    } catch (_) {
       return [];
     }
   }
